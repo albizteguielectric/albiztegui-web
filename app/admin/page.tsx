@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { Octokit } from '@octokit/rest'
 import sharp from 'sharp'
 
+// Forzar el runtime Node.js necesario para módulos nativos como sharp
+export const runtime = 'nodejs'
+
 export async function POST(req: Request) {
   try {
     const token = process.env.GITHUB_TOKEN_ADMIN
@@ -14,8 +17,8 @@ export async function POST(req: Request) {
 
     const octokit = new Octokit({ auth: token })
     const formData = await req.formData()
-    const codigo = formData.get('codigo') as string
-    const file = formData.get('imagen') as File
+    const codigo = formData.get('codigo') as string | null
+    const file = formData.get('imagen') as File | null
 
     if (!codigo || !file) {
       return NextResponse.json({ error: 'Código e imagen son requeridos' }, { status: 400 })
