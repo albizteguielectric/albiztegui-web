@@ -29,54 +29,113 @@ interface Marca {
   sitio_web: string
 }
 
-interface ProductoCableado {
+interface ProductoCatalogo {
   id?: number
   codigo: string
-  descripcion: string // Nombre comercial corto (Frente)
+  descripcion: string
   categoria: string
   subcategoria: string
   imagen_url: string
   mostrar_precio: boolean
   mostrar_existencias: boolean
-  unidad_medida?: string // Campo para tipo de venta (pieza, metro, kg, etc.)
+  unidad_medida?: string
   precio?: number
   existencias?: number
 }
 
-// Estructura de categorías y subcategorías de Cableado
-const ESTRUCTURA_CABLEADO: Record<string, string[]> = {
-  'Fuerza y Acometida': [
-    'Cable THHW-LS Cobre (Cal. 16 al 8)',
-    'Cable THHW Cobre Grueso (Cal. 1/0 a 4/0)',
-    'Cable de Aluminio Acometida (Aéreo / Subterráneo)',
-  ],
-  'Automotriz y Solar': [
-    'Cable Automotriz GPT',
-    'Cable Fotovoltaico Solar (Cal. 10)',
-    'Cable Portaelectrodo (Soldadora)',
-  ],
-  'Uso Rudo, Duplex y Romex': [
-    'Cable Uso Rudo (2, 3 y 4 Conductores)',
-    'Cable Dúplex (POT)',
-    'Cable Romex Plano',
-  ],
-  'Redes Ethernet y Bocina': [
-    'Cable Ethernet UTP (Interior / Exterior)',
-    'Cable para Bocina / Audio (Bicolor)',
-  ],
+// 1. ESTRUCTURAS DE CATEGORÍAS Y SUBCATEGORÍAS PARA CADA SECCIÓN
+const ESTRUCTURAS_POR_CATALOGO: Record<string, Record<string, string[]>> = {
+  tuberia: {
+    'TUBERIA Y ACCESORIOS': ['Galvanizado', 'PVC', 'Poliducto', 'Flexible'],
+    'CONEXIONES RIGIDAS': [
+      'Cople, Conector y Codo Galvanizado',
+      'Cople, Conector y Codo PVC',
+      'Contratuercas, Monitores y Reducciones Bushin',
+      'Condulets'
+    ],
+    'CONECTORES FLEXIBLES Y GLANDULAS': ['Conectores Flexibles', 'Conectores Uso Rudo y Glándulas'],
+    'ABRAZADERAS': ['Uñas y Omegas', 'Clip y Unistrut'],
+    'PERFILES UNICANAL Y EVEREST': [
+      'Pefiles Unicanal y Everest',
+      'Coples, Soleras y Tipo Piso',
+      'Mid Clamps, End Clamps e Intermedias'
+    ]
+  },
+  cajas_registros: {
+    'CAJAS METALICAS': ['Cajas 2x4', 'Cajas 4x4, 5x5, 6x6, 8x8', 'Cajas Octagonales'],
+    'PLASTICAS Y CANALETAS': ['Chalupas Plasticas', 'Cajas de Reparacion', 'Cajas Estanca', 'Canaletas'],
+    'INTERPERIE Y TIPO ZAPATO': ['Chalupas de Interperie', 'Armarios', 'Cajas tipo Zapato'],
+    'TAPAS Y COMPLEMENTOS': ['Tapas Ciegas Galvanizadas', 'Tapas Galvanizadas', 'Tapas Interperie', 'Tapas Especiales']
+  },
+  cableado: {
+    'CABLE': ['Cobre', 'Aluminio'],
+    'CABLE ESPECIAL': ['Uso Rudo', 'POT / Duplex', 'Romex', 'Automotriz', 'Solar'],
+    'EMBOBINADO': ['Magneto', 'Cuñas', 'Espagetti', 'Barniz']
+  },
+  iluminacion: {
+    'FOCOS': ['Focos LED', 'Focos Incandecentes', 'Focos tipo Vela y Bintage'],
+    'SPOT': ['Empotrados', 'Sobrepuestos', 'Dimeables'],
+    'PLAFONES Y LAMPARAS': ['Plafones', 'Lamparas Horizontales'],
+    'ARBOTANTES': ['Arbotantes Electrico', 'Arbotante Solar'],
+    'LAMPARAS EXTERIORES': ['Reflectores', 'Sub Urbanas']
+  },
+  control_fuerza: {
+    'CENTROS DE CARGA': ['Metalicos', 'Riel DIN'],
+    'BRAKERS': ['QD y QP', 'Riel DIN', 'Termomagneticos'],
+    'DE CONTROL': ['Contactores', 'Relevadores', 'Guardamotores', 'Arrancadores'],
+    'ACOMETIDA': ['Bases Socket', 'Accesorios']
+  },
+  placas_apagadores: {
+    'ETON y LEVITON': ['Tradicionales', 'Decorato'],
+    'PLACAS Y TAPAS': ['Tapas 2x4 y 4x4', 'Especiales Decorato'],
+    'LUCEK': ['Basic', 'Flat', 'Premium', 'Cristal']
+  },
+  media_tension: {
+    'TRASFORMADORES': ['Secos', 'Otros'],
+    'CORTACIRCUITOS': ['Canillas', 'Fisibles de Alta', 'Cortacircuitos'],
+    'APARTARRAYOS': ['Polimero', 'Ceramicos'],
+    'ACCESORIOS': [
+      'Crucetas',
+      'Abrazaderas',
+      'Herrajes',
+      'Remates',
+      'Aisladores',
+      'Grapas',
+      'Conectores y Derivadores',
+      'Multiples Mecanicos'
+    ]
+  },
+  electronica: {
+    'HERRAMIENTAS': [
+      'Pinzas',
+      'Desarmadores',
+      'Probadores de Cable',
+      'Dobla Tubos, Corta Tubos y Guias',
+      'Linea de Vida',
+      'Carbones'
+    ],
+    'TORNILLERIA': ['Taquetes', 'Tornillos', 'Terminales', 'Corbatas', 'Capuchones'],
+    'ENERGIA': ['Baterias Alcalinas y Recargables', 'Inversores', 'Reguladores y UPS', 'Multiples y Extensiones'],
+    'SMART HOME': ['Focos y Tomas', 'Camaras', 'Timbres'],
+    'AUDIO Y VIDEO': ['Cables RCA', 'Cables de Luz', 'Accesorios', 'Fusibles']
+  },
+  productos_temporada: {
+    'VENTILADORES Y CALENTONES': ['De techo y Piso', 'Calentones'],
+    'NAVIDAD': ['Luces', 'Inflables', 'Decoraciones']
+  }
 }
 
 // Categorías completas del Menú Catálogo
 const CATEGORIAS_CATALOGO = [
-  { id: 'tuberia', nombre: 'Tuberia' },
-  { id: 'cajas_registros', nombre: 'Cajas y Registros' },
-  { id: 'cableado', nombre: 'Cableado' },
-  { id: 'iluminacion', nombre: 'Iluminacion' },
-  { id: 'control_fuerza', nombre: 'Control y Fuerza' },
-  { id: 'placas_apagadores', nombre: 'Placas y Apagadores' },
-  { id: 'media_tension', nombre: 'Media Tencion' },
-  { id: 'electronica', nombre: 'Electronica' },
-  { id: 'productos_temporada', nombre: 'Productos de Temporada' },
+  { id: 'tuberia', nombre: 'Tuberia y Accesorios', tabla: 'productos_tuberia' },
+  { id: 'cajas_registros', nombre: 'Cajas y Registros', tabla: 'productos_cajas' },
+  { id: 'cableado', nombre: 'Cableado', tabla: 'productos_cableado' },
+  { id: 'iluminacion', nombre: 'Iluminacion', tabla: 'productos_iluminacion' },
+  { id: 'control_fuerza', nombre: 'Control, Fuerza y Acometidas', tabla: 'productos_control' },
+  { id: 'placas_apagadores', nombre: 'Placas y Apagadores', tabla: 'productos_placas' },
+  { id: 'media_tension', nombre: 'Media Tension', tabla: 'productos_media_tension' },
+  { id: 'electronica', nombre: 'Electronica y Herramientas', tabla: 'productos_electronica' },
+  { id: 'productos_temporada', nombre: 'Productos de Temporada', tabla: 'productos_temporada' }
 ]
 
 export default function Dashboard() {
@@ -87,7 +146,7 @@ export default function Dashboard() {
   // Estado para menú desplegable de Catálogo
   const [menuCatalogoAbierto, setMenuCatalogoAbierto] = useState(true)
 
-  // ESTADOS EXISTENTES
+  // ESTADOS GENERALES
   const [imagenes, setImagenes] = useState<ImagenCarrusel[]>([])
   const [nuevaImagen, setNuevaImagen] = useState('')
   const [mensajes, setMensajes] = useState<MensajeContacto[]>([])
@@ -99,9 +158,10 @@ export default function Dashboard() {
   const [sitioWebMarca, setSitioWebMarca] = useState('')
   const [subiendoMarca, setSubiendoMarca] = useState(false)
 
-  // ESTADOS CATÁLOGO (CABLEADO)
-  const [categoriaSel, setCategoriaSel] = useState('Fuerza y Acometida')
-  const [subcategoriaSel, setSubcategoriaSel] = useState('Cable THHW-LS Cobre (Cal. 16 al 8)')
+  // ESTADOS DINÁMICOS DEL FORMULARIO DE PRODUCTOS
+  const [estructuraActual, setEstructuraActual] = useState<Record<string, string[]>>(ESTRUCTURAS_POR_CATALOGO['cableado'])
+  const [categoriaSel, setCategoriaSel] = useState('CABLE')
+  const [subcategoriaSel, setSubcategoriaSel] = useState('Cobre')
   
   const [codigoProd, setCodigoProd] = useState('')
   const [nombreComercialProd, setNombreComercialProd] = useState('') 
@@ -112,11 +172,16 @@ export default function Dashboard() {
   const [mostrarPrecio, setMostrarPrecio] = useState(true)
   const [mostrarExistencias, setMostrarExistencias] = useState(true)
   const [guardandoProducto, setGuardandoProducto] = useState(false)
-  const [productosCableado, setProductosCableado] = useState<ProductoCableado[]>([])
+  const [productosLista, setProductosLista] = useState<ProductoCatalogo[]>([])
   const [editandoId, setEditandoId] = useState<number | null>(null)
 
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'exito' })
   const [modal, setModal] = useState({ mostrar: false, id: 0, tipo: '' })
+
+  const obtenerNombreTabla = (tabId: string) => {
+    const cat = CATEGORIAS_CATALOGO.find(c => c.id === tabId)
+    return cat ? cat.tabla : 'productos_cableado'
+  }
 
   const mostrarAlerta = (mensaje: string, tipo: 'exito' | 'error') => {
     setAlerta({ mostrar: true, mensaje, tipo })
@@ -138,9 +203,30 @@ export default function Dashboard() {
     if (data) setMarcas(data)
   }
 
-  const cargarProductosCableado = async () => {
-    const { data } = await supabase.from('productos_cableado').select('*').order('id', { ascending: false })
-    if (data) setProductosCableado(data)
+  const cargarProductosSeccion = async (tabId: string) => {
+    const tabla = obtenerNombreTabla(tabId)
+    const { data } = await supabase.from(tabla).select('*').order('id', { ascending: false })
+    if (data) setProductosLista(data)
+    else setProductosLista([])
+  }
+
+  // Cambiar pestaña del catálogo y actualizar opciones del selector
+  const cambiarPestanaCatalogo = (tabId: string) => {
+    setActiveTab(tabId)
+    const nuevaEstructura = ESTRUCTURAS_POR_CATALOGO[tabId] || ESTRUCTURAS_POR_CATALOGO['cableado']
+    setEstructuraActual(nuevaEstructura)
+    
+    const primeraCat = Object.keys(nuevaEstructura)[0] || ''
+    const primeraSubcat = nuevaEstructura[primeraCat]?.[0] || ''
+    
+    setCategoriaSel(primeraCat)
+    setSubcategoriaSel(primeraSubcat)
+    setEditandoId(null)
+    setCodigoProd('')
+    setNombreComercialProd('')
+    setDescripcionTecnicaDb('')
+
+    cargarProductosSeccion(tabId)
   }
 
   useEffect(() => {
@@ -153,15 +239,16 @@ export default function Dashboard() {
         cargarImagenes()
         cargarMensajes()
         cargarMarcas()
-        cargarProductosCableado()
+        cargarProductosSeccion(activeTab)
       }
     }
     checkUser()
-  }, [router])
+  }, [router, activeTab])
 
   const handleCategoriaChange = (cat: string) => {
     setCategoriaSel(cat)
-    setSubcategoriaSel(ESTRUCTURA_CABLEADO[cat][0])
+    const subcats = estructuraActual[cat] || []
+    setSubcategoriaSel(subcats.length > 0 ? subcats[0] : '')
   }
 
   const buscarDescripcionBD = async (codigo: string) => {
@@ -186,43 +273,43 @@ export default function Dashboard() {
     setBuscandoDb(false)
   }
 
-  // ACCIÓN MASIVA: Cambiar visibilidad de Precios para TODOS los productos
   const alternarPrecioTodos = async (estado: boolean) => {
     try {
+      const tabla = obtenerNombreTabla(activeTab)
       const { error } = await supabase
-        .from('productos_cableado')
+        .from(tabla)
         .update({ mostrar_precio: estado })
         .neq('id', 0)
 
       if (error) throw error
 
-      mostrarAlerta(`Precios ${estado ? 'activados' : 'ocultados'} para todos los productos.`, 'exito')
-      cargarProductosCableado()
+      mostrarAlerta(`Precios ${estado ? 'activados' : 'ocultados'} para la sección actual.`, 'exito')
+      cargarProductosSeccion(activeTab)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al actualizar visibilidad'
       mostrarAlerta(msg, 'error')
     }
   }
 
-  // ACCIÓN MASIVA: Cambiar visibilidad de Stock para TODOS los productos
   const alternarExistenciasTodos = async (estado: boolean) => {
     try {
+      const tabla = obtenerNombreTabla(activeTab)
       const { error } = await supabase
-        .from('productos_cableado')
+        .from(tabla)
         .update({ mostrar_existencias: estado })
         .neq('id', 0)
 
       if (error) throw error
 
-      mostrarAlerta(`Stock ${estado ? 'activado' : 'ocultado'} para todos los productos.`, 'exito')
-      cargarProductosCableado()
+      mostrarAlerta(`Stock ${estado ? 'activado' : 'ocultado'} para la sección actual.`, 'exito')
+      cargarProductosSeccion(activeTab)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al actualizar visibilidad'
       mostrarAlerta(msg, 'error')
     }
   }
 
-  const guardarProductoCableado = async (e: React.FormEvent) => {
+  const guardarProducto = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!codigoProd || !nombreComercialProd) {
       mostrarAlerta('Completa el código y el nombre comercial del producto.', 'error')
@@ -269,12 +356,14 @@ export default function Dashboard() {
         unidad_medida: unidadMedida,
       }
 
+      const tabla = obtenerNombreTabla(activeTab)
+
       if (editandoId) {
-        const { error } = await supabase.from('productos_cableado').update(payload).eq('id', editandoId)
+        const { error } = await supabase.from(tabla).update(payload).eq('id', editandoId)
         if (error) throw error
         mostrarAlerta('Producto actualizado correctamente.', 'exito')
       } else {
-        const { error } = await supabase.from('productos_cableado').insert([payload])
+        const { error } = await supabase.from(tabla).insert([payload])
         if (error) throw error
         mostrarAlerta('Producto publicado en el catálogo.', 'exito')
       }
@@ -285,7 +374,7 @@ export default function Dashboard() {
       setUnidadMedida('pieza')
       setArchivoImagenProd(null)
       setEditandoId(null)
-      cargarProductosCableado()
+      cargarProductosSeccion(activeTab)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al guardar producto'
       mostrarAlerta(msg, 'error')
@@ -294,7 +383,7 @@ export default function Dashboard() {
     }
   }
 
-  const prepararEdicion = (p: ProductoCableado) => {
+  const prepararEdicion = (p: ProductoCatalogo) => {
     setEditandoId(p.id || null)
     setCategoriaSel(p.categoria)
     setSubcategoriaSel(p.subcategoria)
@@ -385,12 +474,15 @@ export default function Dashboard() {
     } else if (modal.tipo === 'marca') {
       const { error } = await supabase.from('marcas').delete().eq('id', modal.id)
       if (!error) { cargarMarcas(); mostrarAlerta('Marca eliminada.', 'exito') }
-    } else if (modal.tipo === 'producto_cableado') {
-      const { error } = await supabase.from('productos_cableado').delete().eq('id', modal.id)
-      if (!error) { cargarProductosCableado(); mostrarAlerta('Producto eliminado del catálogo.', 'exito') }
+    } else if (modal.tipo === 'producto_catalogo') {
+      const tabla = obtenerNombreTabla(activeTab)
+      const { error } = await supabase.from(tabla).delete().eq('id', modal.id)
+      if (!error) { cargarProductosSeccion(activeTab); mostrarAlerta('Producto eliminado.', 'exito') }
     }
     setModal({ mostrar: false, id: 0, tipo: '' })
   }
+
+  const esPestanaCatalogo = CATEGORIAS_CATALOGO.some(c => c.id === activeTab)
 
   if (loading) {
     return (
@@ -469,7 +561,7 @@ export default function Dashboard() {
                   <button
                     key={cat.id}
                     type="button"
-                    onClick={() => setActiveTab(cat.id)}
+                    onClick={() => cambiarPestanaCatalogo(cat.id)}
                     className={`w-full text-left px-3 py-2 rounded-md font-semibold text-xs transition-colors block ${
                       activeTab === cat.id 
                         ? 'bg-orange-500 text-white font-bold' 
@@ -524,11 +616,13 @@ export default function Dashboard() {
       <main className="flex-grow p-4 sm:p-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-10 min-h-[500px]">
           
-          {/* PESTAÑA: CATÁLOGO CABLEADO */}
-          {activeTab === 'cableado' && (
+          {/* VISTAS DE CATÁLOGO DINÁMICAS */}
+          {esPestanaCatalogo && (
             <div>
               <div className="flex flex-col lg:flex-row justify-between lg:items-center mb-6 gap-4">
-                <h1 className="text-3xl font-extrabold text-blue-900">Catálogo: Cableado</h1>
+                <h1 className="text-3xl font-extrabold text-blue-900">
+                  Catálogo: {CATEGORIAS_CATALOGO.find(c => c.id === activeTab)?.nombre}
+                </h1>
 
                 {/* BOTONES DE CONTROL GLOBAL DE VISIBILIDAD */}
                 <div className="flex flex-wrap items-center gap-3 bg-gray-50 p-2 rounded-xl border border-gray-200">
@@ -570,7 +664,7 @@ export default function Dashboard() {
               </div>
 
               {/* FORMULARIO DE REGISTRO */}
-              <form onSubmit={guardarProductoCableado} className="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-6">
+              <form onSubmit={guardarProducto} className="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-6">
                 <div className="flex justify-between items-center border-b border-gray-200 pb-3">
                   <h3 className="font-bold text-blue-950 text-lg">
                     {editandoId ? 'Editar Producto' : 'Agregar Nuevo Artículo'}
@@ -578,7 +672,16 @@ export default function Dashboard() {
                   {editandoId && (
                     <button 
                       type="button" 
-                      onClick={() => { setEditandoId(null); setCodigoProd(''); setNombreComercialProd(''); setDescripcionTecnicaDb(''); setUnidadMedida('pieza'); }}
+                      onClick={() => {
+                        const primeraCat = Object.keys(estructuraActual)[0] || ''
+                        setEditandoId(null)
+                        setCodigoProd('')
+                        setNombreComercialProd('')
+                        setDescripcionTecnicaDb('')
+                        setUnidadMedida('pieza')
+                        setCategoriaSel(primeraCat)
+                        setSubcategoriaSel(estructuraActual[primeraCat]?.[0] || '')
+                      }}
                       className="text-xs font-bold text-red-500 hover:underline"
                     >
                       Cancelar Edición
@@ -595,7 +698,7 @@ export default function Dashboard() {
                       onChange={(e) => handleCategoriaChange(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white font-semibold"
                     >
-                      {Object.keys(ESTRUCTURA_CABLEADO).map((cat) => (
+                      {Object.keys(estructuraActual).map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
@@ -608,7 +711,7 @@ export default function Dashboard() {
                       onChange={(e) => setSubcategoriaSel(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
                     >
-                      {ESTRUCTURA_CABLEADO[categoriaSel].map((sub) => (
+                      {(estructuraActual[categoriaSel] || []).map((sub) => (
                         <option key={sub} value={sub}>{sub}</option>
                       ))}
                     </select>
@@ -706,21 +809,21 @@ export default function Dashboard() {
                     <tr>
                       <th className="py-3 px-4 font-bold">Código / Foto</th>
                       <th className="py-3 px-4 font-bold">Nombre Comercial</th>
-                      <th className="py-3 px-4 font-bold">Subcategoría</th>
+                      <th className="py-3 px-4 font-bold">Categoría / Subcategoría</th>
                       <th className="py-3 px-4 font-bold text-center">Unidad</th>
                       <th className="py-3 px-4 font-bold text-center">Visibilidad</th>
                       <th className="py-3 px-4 font-bold text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {productosCableado.length === 0 ? (
+                    {productosLista.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-gray-500 font-medium">
-                          No hay productos registrados en la sección de cableado.
+                          No hay productos registrados en esta sección del catálogo.
                         </td>
                       </tr>
                     ) : (
-                      productosCableado.map((p) => (
+                      productosLista.map((p) => (
                         <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                           <td className="py-3 px-4 font-bold text-blue-900 flex items-center gap-3">
                             <div className="w-10 h-10 relative bg-gray-50 border rounded-lg p-1 flex items-center justify-center overflow-hidden">
@@ -729,7 +832,10 @@ export default function Dashboard() {
                             <span>{p.codigo}</span>
                           </td>
                           <td className="py-3 px-4 font-medium text-gray-800 max-w-xs truncate">{p.descripcion}</td>
-                          <td className="py-3 px-4 text-xs font-semibold text-orange-600">{p.subcategoria}</td>
+                          <td className="py-3 px-4 text-xs font-semibold text-orange-600">
+                            <div>{p.categoria}</div>
+                            <div className="text-gray-400 font-normal">{p.subcategoria}</div>
+                          </td>
                           <td className="py-3 px-4 text-center text-xs font-bold text-blue-900 capitalize">
                             {p.unidad_medida || 'pieza'}
                           </td>
@@ -751,7 +857,7 @@ export default function Dashboard() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setModal({ mostrar: true, id: p.id!, tipo: 'producto_cableado' })}
+                              onClick={() => setModal({ mostrar: true, id: p.id!, tipo: 'producto_catalogo' })}
                               className="text-red-500 hover:text-red-700 font-bold text-xs"
                             >
                               Eliminar
@@ -763,18 +869,6 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-
-          {/* VISTAS TEMPORALES PARA LAS DEMÁS CATEGORÍAS */}
-          {activeTab !== 'cableado' && activeTab !== 'carrusel' && activeTab !== 'marcas' && activeTab !== 'buzon' && (
-            <div className="py-12 text-center">
-              <h1 className="text-3xl font-extrabold text-blue-900 mb-2">
-                Catálogo: {CATEGORIAS_CATALOGO.find(c => c.id === activeTab)?.nombre}
-              </h1>
-              <p className="text-gray-500 text-sm">
-                Sección lista para conectar sus productos de la base de datos.
-              </p>
             </div>
           )}
 

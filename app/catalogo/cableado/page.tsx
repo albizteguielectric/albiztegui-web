@@ -5,50 +5,12 @@ import { supabase } from '../../lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 
-// 1. Datos para la Guía Técnica de Conductores
-const tiposCableado = [
-  {
-    id: 'thhw-aluminio',
-    nombre: 'Conductores de Fuerza (Cobre y Aluminio)',
-    uso: 'Instalaciones eléctricas de fuerza, alumbrado residencial, comercial e introducciones de acometidas principales.',
-    norma: 'Aislamiento de PVC 90°C, 600V, autoextinguible y resistente a la humedad.',
-    medidas: [
-      { modelo: 'THHW-LS Cobre (Cal. 16 al 8)', empaque: 'Carrete 500m / Caja 100m', usoComun: 'Instalación residencial en tubería (Colores: Negro, Rojo, Blanco, Verde)' },
-      { modelo: 'THHW-LS Cobre (Cal. 1/0 a 4/0)', empaque: 'Por Metro', usoComun: 'Alimentadores principales y tableros de alta demanda (Color Negro)' },
-      { modelo: 'Aluminio Acometida (Aéreo / Subterráneo)', empaque: 'Por Metro (Cal. 6 al 1/0)', usoComun: 'Conexión desde poste/red (Monopolar, Duplex 1+1, Triplex 2+1)' }
-    ]
-  },
-  {
-    id: 'automotriz-solar',
-    nombre: 'Automotriz, Solar y Soldadora',
-    uso: 'Circuitos automotrices de bajo voltaje, arneses de vehículos, sistemas fotovoltaicos e hilos de soldar.',
-    norma: 'Resistencia a aceites, abrasión, rayos UV (Solar) y flexibilidad extrema.',
-    medidas: [
-      { modelo: 'Cable Automotriz (Cal. 18 al 10)', empaque: 'Bolsas de 100 metros', usoComun: 'Arneses vehiculares, luces y accesorios (Variedad de colores)' },
-      { modelo: 'Cable Fotovoltaico Cal. 10', empaque: 'Por Metro', usoComun: 'Conexión entre paneles solares e inversores (Rojo y Negro, UV 1000V)' },
-      { modelo: 'Cable Portaelectrodo (Cal. 8 al 3/0)', empaque: 'Por Metro', usoComun: 'Máquinas de soldar portátiles e industriales (Rojo y Negro)' }
-    ]
-  },
-  {
-    id: 'uso-rudo-romex',
-    nombre: 'Uso Rudo, Dúplex y Romex',
-    uso: 'Extensiones industriales, alimentación de equipos móviles, conexiones visibles y cableado plano en muro dry-wall.',
-    norma: 'Aislamiento flexible termoplástico resistente al maltrato mecánico.',
-    medidas: [
-      { modelo: 'Cable Uso Rudo (2, 3 y 4 hilos)', empaque: 'Por Metro (Cal. 18 hasta 6)', usoComun: 'Maquinaria, extensiones de alto impacto y herramientas' },
-      { modelo: 'Cable Dúplex (POT) Cal. 18 al 10', empaque: 'Carrete 500m / Caja 100m', usoComun: 'Extensiones domésticas y conexiones fijas visibles' },
-      { modelo: 'Cable Romex (NMD90 / UF)', empaque: 'Rollo de 100 metros', usoComun: 'Cable plano con tierra (2 y 3 hilos en Cal. 14, 12 y 10)' }
-    ]
-  }
-]
-
-// 2. Sub-Pestañas de Filtrado
+// 1. Sub-Pestañas de Filtrado (Actualizadas a las 3 categorías solicitadas)
 const categoriasCableado = [
   { id: 'Todas', nombre: 'Todas' },
-  { id: 'Fuerza y Acometida', nombre: 'Fuerza y Acometida' },
-  { id: 'Automotriz y Solar', nombre: 'Automotriz y Solar' },
-  { id: 'Uso Rudo, Duplex y Romex', nombre: 'Uso Rudo, Dúplex y Romex' },
-  { id: 'Redes Ethernet y Bocina', nombre: 'Redes Ethernet y Bocina' }
+  { id: 'CABLE', nombre: 'Cable' },
+  { id: 'CABLE ESPECIAL', nombre: 'Cable Especial' },
+  { id: 'EMBOBINADO', nombre: 'Embobinado' }
 ]
 
 interface ProductoCableado {
@@ -71,7 +33,6 @@ interface DatosInventario {
 }
 
 export default function CableadoPage() {
-  const [tipoActivo, setTipoActivo] = useState(tiposCableado[0].id)
   const [catAccesorioActiva, setCatAccesorioActiva] = useState('Todas')
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>({})
   
@@ -91,7 +52,7 @@ export default function CableadoPage() {
       const { data: prods, error } = await supabase
         .from('productos_cableado')
         .select('*')
-        .order('id', { ascending: false })
+        .order('codigo', { ascending: true })
 
       if (!active) return
 
@@ -178,8 +139,6 @@ export default function CableadoPage() {
     return `${existencias} ${etiqueta}`
   }
 
-  const tipoSeleccionado = tiposCableado.find(t => t.id === tipoActivo) || tiposCableado[0]
-  
   const productosFiltrados = catAccesorioActiva === 'Todas'
     ? productos
     : productos.filter(p => p.categoria === catAccesorioActiva || p.subcategoria === catAccesorioActiva)
@@ -242,7 +201,7 @@ export default function CableadoPage() {
             Cableado y Conductores Eléctricos
           </h1>
           <p className="text-gray-600 text-base sm:text-lg mt-2">
-            Catálogo completo de cables de cobre, aluminio, uso rudo, automotriz, fotovoltaico, red y sistemas de sonido.
+            Catálogo completo de cables de cobre, aluminio, uso rudo, automotriz, fotovoltaico y embobinado.
           </p>
         </div>
 
@@ -285,69 +244,7 @@ export default function CableadoPage() {
           </div>
         </div>
 
-        {/* GUÍA TÉCNICA Y TABLA DE CABLES */}
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-10 mb-16">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-              Especificaciones de Presentación y Aislamiento
-            </h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Consulta las modalidades de empaque y usos principales de cada tipo de conductor.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
-            {tiposCableado.map((tipo) => (
-              <button
-                key={tipo.id}
-                onClick={() => setTipoActivo(tipo.id)}
-                className={`px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm ${
-                  tipoActivo === tipo.id 
-                    ? 'bg-blue-900 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {tipo.nombre}
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs font-bold text-orange-500 uppercase tracking-wider block mb-1">Aplicación Principal</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.uso}</p>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-blue-900 uppercase tracking-wider block mb-1">Propiedades de Aislamiento</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.norma}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-blue-950 text-white text-xs uppercase">
-                <tr>
-                  <th className="py-3.5 px-4 font-extrabold">Tipo / Calibres</th>
-                  <th className="py-3.5 px-4 font-extrabold">Presentación / Empaque</th>
-                  <th className="py-3.5 px-4 font-extrabold">Aplicación Típica</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {tipoSeleccionado.medidas.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-blue-900">{item.modelo}</td>
-                    <td className="py-3.5 px-4 font-bold text-orange-600">{item.empaque}</td>
-                    <td className="py-3.5 px-4 text-gray-800">{item.usoComun}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* TARJETAS INTERACTIVAS COMPACTAS */}
+        {/* TARJETAS INTERACTIVAS COMPACTAS (CATÁLOGO DIRECTO) */}
         <div className="mb-16">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -361,7 +258,7 @@ export default function CableadoPage() {
             </p>
           </div>
 
-          {/* FILTRO DE CATEGORÍAS */}
+          {/* FILTRO DE CATEGORÍAS (AHORA DIRECTO) */}
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
             {categoriasCableado.map((cat) => (
               <button
