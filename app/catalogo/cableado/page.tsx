@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -43,136 +44,177 @@ const tiposCableado = [
 
 // 2. Sub-Pestañas de Filtrado
 const categoriasCableado = [
-  { id: 'fuerza-acometida', nombre: 'Fuerza y Acometida' },
-  { id: 'automotriz-especial', nombre: 'Automotriz y Solar' },
-  { id: 'rudo-duplex-romex', nombre: 'Uso Rudo, Dúplex y Romex' },
-  { id: 'redes-audio', nombre: 'Redes Ethernet y Bocina' }
+  { id: 'Todas', nombre: 'Todas' },
+  { id: 'Fuerza y Acometida', nombre: 'Fuerza y Acometida' },
+  { id: 'Automotriz y Solar', nombre: 'Automotriz y Solar' },
+  { id: 'Uso Rudo, Duplex y Romex', nombre: 'Uso Rudo, Dúplex y Romex' },
+  { id: 'Redes Ethernet y Bocina', nombre: 'Redes Ethernet y Bocina' }
 ]
 
-// 3. Tarjetas Interactivas
-const accesorios = [
-  // --- FUERZA Y ACOMETIDA ---
-  {
-    id: 1,
-    categoriaId: 'fuerza-acometida',
-    nombre: 'Cable THHW-LS Cobre (Cal. 16 al 8)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable.jpg',
-    descripcion: 'Conductor monofilular o multihilo de cobre para circuitos derivados de alumbrado y contactos.',
-    medidas: 'Calibres 16, 14, 12, 10 y 8 AWG (Negro, Rojo, Blanco, Verde)',
-    material: 'Carrete de 500 mts / Caja de 100 mts'
-  },
-  {
-    id: 2,
-    categoriaId: 'fuerza-acometida',
-    nombre: 'Cable THHW Cobre Grueso (Cal. 1/0 a 4/0)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable-10.jpg',
-    descripcion: 'Cable de cobre de gran calibre para alimentadores principales e hilos de tableros industriales.',
-    medidas: 'Calibres 1/0, 2/0, 3/0 y 4/0 AWG (Color Negro)',
-    material: 'Venta por Metro'
-  },
-  {
-    id: 3,
-    categoriaId: 'fuerza-acometida',
-    nombre: 'Cable de Aluminio Acometida (Aéreo / Subterráneo)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable-aluminio.jpg',
-    descripcion: 'Conductor de aluminio neutro portante o subterráneo para bajadas de medidor y redes de distribución.',
-    medidas: 'Calibres 6 al 1/0 (Monopolar, Duplex 1+1, Triplex 2+1)',
-    material: 'Venta por Metro'
-  },
+interface ProductoCableado {
+  id: number
+  codigo: string
+  descripcion: string // Nombre comercial / Ficha técnica de la tabla
+  categoria: string
+  subcategoria: string
+  imagen_url: string
+  mostrar_precio: boolean
+  mostrar_existencias: boolean
+}
 
-  // --- AUTOMOTRIZ Y SOLAR ---
-  {
-    id: 4,
-    categoriaId: 'automotriz-especial',
-    nombre: 'Cable Automotriz GPT',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable-aut.jpg',
-    descripcion: 'Cable flexible de cobre suave especial para arneses vehiculares y baja tensión automotriz.',
-    medidas: 'Calibres 18, 16, 14, 12 y 10 AWG (Surtido de colores)',
-    material: 'Bolsa con Rollo de 100 mts'
-  },
-  {
-    id: 5,
-    categoriaId: 'automotriz-especial',
-    nombre: 'Cable Fotovoltaico Solar (Cal. 10)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable-foto.jpg',
-    descripcion: 'Conductor de cobre estañado altamente resistente a intemperie, ozono y radiación UV para paneles solares.',
-    medidas: 'Calibre 10 AWG (Colores Rojo y Negro / 1000V DC)',
-    material: 'Venta por Metro'
-  },
-  {
-    id: 6,
-    categoriaId: 'automotriz-especial',
-    nombre: 'Cable Portaelectrodo (Soldadora)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable-porta.jpg',
-    descripcion: 'Conductor extra-flexible para alimentación de pinza y masa en máquinas de soldar.',
-    medidas: 'Calibres 8, 6, 4, 2, 1/0, 2/0 y 3/0 AWG (Rojo y Negro)',
-    material: 'Venta por Metro'
-  },
-
-  // --- USO RUDO, DÚPLEX Y ROMEX ---
-  {
-    id: 7,
-    categoriaId: 'rudo-duplex-romex',
-    nombre: 'Cable Uso Rudo (2, 3 y 4 Conductores)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable-usorudo.jpg',
-    descripcion: 'Cable multiconductor flexible cubierto de neopreno/PVC resistente a aceite y abrasión.',
-    medidas: 'Desde 2x18, 3x18, 4x18 hasta 2x6, 3x6 y 4x6 AWG',
-    material: 'Venta por Metro'
-  },
-  {
-    id: 8,
-    categoriaId: 'rudo-duplex-romex',
-    nombre: 'Cable Dúplex (POT)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable-pot.jpg',
-    descripcion: 'Dos conductores paralelos unirlos con cubierta blanca o gris para instalaciones portátiles y extensiones.',
-    medidas: 'Calibres 18, 16, 14, 12 y 10 AWG',
-    material: 'Carrete de 500 mts / Caja de 100 mts'
-  },
-  {
-    id: 9,
-    categoriaId: 'rudo-duplex-romex',
-    nombre: 'Cable Romex Plano',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable-romex.jpg',
-    descripcion: 'Conductores con forro exterior plano autoextinguible con hilo de tierra desnudo integrado.',
-    medidas: '2x14, 2x12, 2x10, 3x14, 3x12 y 3x10 AWG',
-    material: 'Rollo de 100 mts'
-  },
-
-  // --- REDES Y AUDIO ---
-  {
-    id: 10,
-    categoriaId: 'redes-audio',
-    nombre: 'Cable Ethernet UTP (Interior / Exterior)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable-red.jpg',
-    descripcion: 'Cable de pares trenzados para voz, datos y redes de red. Opción para exterior con doble chaqueta contra radiación solar.',
-    medidas: 'Interior (Cat 5e / Cat 6) y Exterior (Cat 6 CMX)',
-    material: 'Por Metro o Caja de 305 mts'
-  },
-  {
-    id: 11,
-    categoriaId: 'redes-audio',
-    nombre: 'Cable para Bocina / Audio (Bicolor)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cable-bocina.jpg',
-    descripcion: 'Cable dúplex polarizado para sistemas de sonido, altavoces, perifoneo y sonorización.',
-    medidas: 'Calibres 22, 18 y 14 AWG (Polarizado / Bicolor)',
-    material: 'Rollo de 100 mts'
-  }
-]
+interface DatosInventario {
+  codigo: string
+  descripcion: string 
+  precio: number
+  existencias: number
+}
 
 export default function CableadoPage() {
   const [tipoActivo, setTipoActivo] = useState(tiposCableado[0].id)
-  const [catAccesorioActiva, setCatAccesorioActiva] = useState(categoriasCableado[0].id)
+  const [catAccesorioActiva, setCatAccesorioActiva] = useState('Todas')
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>({})
+  
+  // Estado para controlar la imagen abierta en el Pop-up / Modal
+  const [imagenModal, setImagenModal] = useState<{ url: string; codigo: string } | null>(null)
+
+  // Estados dinámicos de Supabase
+  const [productos, setProductos] = useState<ProductoCableado[]>([])
+  const [datosInventario, setDatosInventario] = useState<Record<string, DatosInventario>>({})
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    const fetchProductos = async () => {
+      // 1. Cargar catálogo de productos_cableado
+      const { data: prods, error } = await supabase
+        .from('productos_cableado')
+        .select('*')
+        .order('id', { ascending: false })
+
+      if (!active) return
+
+      if (error) {
+        console.error('Error al cargar productos_cableado:', error.message || error)
+        setCargando(false)
+        return
+      }
+
+      if (prods && prods.length > 0) {
+        setProductos(prods)
+
+        // 2. Extraer códigos limpios en mayúsculas
+        const codigosLimpios = Array.from(
+          new Set(
+            prods
+              .map(p => (p.codigo ? p.codigo.trim().toUpperCase() : ''))
+              .filter(c => c.length > 0)
+          )
+        )
+
+        // 3. Consultar la tabla "productos" para sincronizar precios y stock
+        if (codigosLimpios.length > 0) {
+          const { data: invData, error: invError } = await supabase
+            .from('productos')
+            .select('codigo, descripcion, precio, existencias')
+            .in('codigo', codigosLimpios)
+
+          if (invError) {
+            console.error('Error al consultar tabla productos:', invError.message || invError)
+          }
+
+          if (active && invData) {
+            const mapInv: Record<string, DatosInventario> = {}
+            invData.forEach(item => {
+              if (item.codigo) {
+                mapInv[item.codigo.trim().toUpperCase()] = {
+                  codigo: item.codigo.trim().toUpperCase(),
+                  descripcion: item.descripcion || '',
+                  precio: Number(item.precio) || 0,
+                  existencias: Number(item.existencias) || 0
+                }
+              }
+            })
+            setDatosInventario(mapInv)
+          }
+        }
+      }
+
+      if (active) {
+        setCargando(false)
+      }
+    }
+
+    fetchProductos()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const toggleFlip = (id: number) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
+  const abrirImagenModal = (e: React.MouseEvent, url: string, codigo: string) => {
+    // Evita que la tarjeta gire al hacer clic sobre la imagen
+    e.stopPropagation()
+    setImagenModal({ url, codigo })
+  }
+
   const tipoSeleccionado = tiposCableado.find(t => t.id === tipoActivo) || tiposCableado[0]
-  const accesoriosFiltrados = accesorios.filter(a => a.categoriaId === catAccesorioActiva)
+  
+  const productosFiltrados = catAccesorioActiva === 'Todas'
+    ? productos
+    : productos.filter(p => p.categoria === catAccesorioActiva || p.subcategoria === catAccesorioActiva)
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 pt-20">
+      
+      {/* MODAL POP-UP DE IMAGEN COMPLETA */}
+      {imagenModal && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+          onClick={() => setImagenModal(null)}
+        >
+          <div 
+            className="relative bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl overflow-hidden flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* BOTÓN DE CIERRE (X) */}
+            <button
+              type="button"
+              onClick={() => setImagenModal(null)}
+              className="absolute top-4 right-4 bg-gray-100 hover:bg-orange-500 hover:text-white text-gray-700 w-10 h-10 rounded-full flex items-center justify-center font-black text-lg transition-colors shadow-md z-10"
+              title="Cerrar vista previa"
+            >
+              ✕
+            </button>
+
+            {/* ENCABEZADO DEL MODAL */}
+            <div className="w-full text-left border-b border-gray-100 pb-3 mb-4 pr-12">
+              <span className="text-xs font-black text-orange-500 uppercase tracking-wider block">Vista de Producto</span>
+              <h3 className="text-lg font-extrabold text-blue-900">Código: {imagenModal.codigo}</h3>
+            </div>
+
+            {/* CONTENEDOR DE LA IMAGEN AMPLIADA */}
+            <div className="relative w-full h-[60vh] sm:h-[70vh] bg-gray-50 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center">
+              <Image
+                src={imagenModal.url}
+                alt={imagenModal.codigo}
+                fill={true}
+                className="object-contain p-4"
+                unoptimized={true}
+              />
+            </div>
+            
+            <p className="text-xs text-gray-400 mt-3 font-medium">
+              Haz clic fuera o presiona la X para cerrar
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         
         {/* ENCABEZADO */}
@@ -289,7 +331,7 @@ export default function CableadoPage() {
           </div>
         </div>
 
-        {/* TARJETAS INTERACTIVAS SUB-FILTRADAS */}
+        {/* TARJETAS INTERACTIVAS COMPACTAS */}
         <div className="mb-16">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -299,10 +341,11 @@ export default function CableadoPage() {
               Gama Completa de Cables
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              Haz clic sobre la tarjeta para revisar detalles del empaque y calibres disponibles.
+              Haz clic en la imagen para verla en pantalla completa, o en el texto para girar la tarjeta.
             </p>
           </div>
 
+          {/* FILTRO DE CATEGORÍAS */}
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
             {categoriasCableado.map((cat) => (
               <button
@@ -319,66 +362,126 @@ export default function CableadoPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {accesoriosFiltrados.map((item) => {
-              const isFlipped = flippedCards[item.id] || false;
-              return (
-                <div 
-                  key={item.id}
-                  onClick={() => toggleFlip(item.id)}
-                  className="h-80 w-full cursor-pointer [perspective:1000px] group"
-                >
-                  <div className={`relative h-full w-full rounded-2xl shadow-md transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                    
-                    {/* FRENTE */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-white p-6 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
-                      <div className="w-full h-40 bg-gray-50 rounded-xl relative overflow-hidden border border-gray-100">
-                        <Image 
-                          src={item.imagen} 
-                          alt={item.nombre} 
-                          fill={true} 
-                          className="object-cover w-full h-full" 
-                          unoptimized={true}
-                        />
-                      </div>
-                      <div className="text-center mt-2">
-                        <h3 className="text-base sm:text-lg font-extrabold text-blue-900 group-hover:text-orange-500 transition-colors">
-                          {item.nombre}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1">Haz clic para ver ficha 🔄</p>
-                      </div>
-                    </div>
+          {/* ESTADO CARGANDO / SIN PRODUCTOS */}
+          {cargando ? (
+            <div className="text-center py-16">
+              <p className="text-lg font-bold text-blue-900 animate-pulse">Cargando productos de cableado...</p>
+            </div>
+          ) : productosFiltrados.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200">
+              <p className="text-gray-500 font-semibold">No hay productos registrados en esta categoría aún.</p>
+            </div>
+          ) : (
+            /* RETÍCULA DE TARJETAS COMPACTAS */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+              {productosFiltrados.map((item) => {
+                const isFlipped = flippedCards[item.id] || false;
+                const codigoClave = item.codigo ? item.codigo.trim().toUpperCase() : '';
+                
+                // Mapeo con fallback hacia la descripción propia del producto
+                const invData = datosInventario[codigoClave];
+                const descripcionReverso = (invData && invData.descripcion && invData.descripcion.trim() !== '')
+                  ? invData.descripcion
+                  : item.descripcion;
 
-                    {/* REVERSO */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-blue-950 p-6 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
-                      <div>
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Ficha Técnica</span>
-                          <span className="text-xs text-gray-400">🔄 Volver</span>
+                const precioFinal = invData ? invData.precio : 0;
+                const existenciasFinales = invData ? invData.existencias : 0;
+
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => toggleFlip(item.id)}
+                    className="h-56 w-full cursor-pointer [perspective:1000px] group"
+                  >
+                    <div className={`relative h-full w-full rounded-xl shadow-sm transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+                      
+                      {/* FRENTE DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
+                        
+                        {/* CONTENEDOR DE IMAGEN (ABRE EL POP-UP POP-UP AL DAR CLIC) */}
+                        <div 
+                          onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
+                          className="w-full h-24 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors"
+                          title="Haz clic para ampliar imagen"
+                        >
+                          <Image 
+                            src={item.imagen_url} 
+                            alt={item.codigo} 
+                            fill={true} 
+                            className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
+                            unoptimized={true}
+                          />
+                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
+                            🔍 Ampliar
+                          </span>
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">{item.nombre}</h3>
-                        <p className="text-xs text-gray-300 mb-4 leading-relaxed">
-                          {item.descripcion}
-                        </p>
+
+                        {/* TEXTO DE LA TARJETA (HACER CLIC AQUÍ GIRA LA TARJETA) */}
+                        <div className="text-center w-full mt-1">
+                          <span className="text-[9px] font-black text-orange-500 uppercase tracking-wider block truncate">
+                            CÓD: {item.codigo}
+                          </span>
+                          <h3 className="text-xs font-bold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-0.5 leading-tight" title={item.descripcion}>
+                            {item.descripcion}
+                          </h3>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Girar Ficha 🔄</p>
+                        </div>
                       </div>
 
-                      <div className="border-t border-blue-900 pt-3 space-y-2">
+                      {/* REVERSO DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
                         <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Calibres / Colores:</span>
-                          <span className="text-xs font-bold text-orange-400">{item.medidas}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Presentación:</span>
-                          <span className="text-xs font-bold text-gray-200">{item.material}</span>
-                        </div>
-                      </div>
-                    </div>
+                          <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
+                            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
+                              CÓD: {item.codigo}
+                            </span>
+                            <span className="text-[9px] text-gray-400">🔄</span>
+                          </div>
+                          
+                          <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
+                            {descripcionReverso}
+                          </p>
 
+                          {/* PRECIO Y STOCK DINÁMICO */}
+                          <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
+                            {item.mostrar_precio && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
+                                <span className="text-xs font-black text-orange-400">
+                                  ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
+                                </span>
+                              </div>
+                            )}
+
+                            {item.mostrar_existencias && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
+                                <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {existenciasFinales > 0 ? `${existenciasFinales} pza(s)` : 'Agotado'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* BOTÓN WHATSAPP COMPACTO */}
+                        <a
+                          href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
+                        >
+                          Cotizar WhatsApp
+                        </a>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* COTIZADOR */}

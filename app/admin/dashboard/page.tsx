@@ -7,45 +7,111 @@ import Image from 'next/image'
 import React from 'react'
 
 interface ImagenCarrusel {
-  id: number;
-  imagen_url: string;
-  orden: number;
-  activa: boolean;
+  id: number
+  imagen_url: string
+  orden: number
+  activa: boolean
 }
 
 interface MensajeContacto {
-  id: number;
-  nombre: string;
-  telefono: string;
-  mensaje: string;
-  leido: boolean;
-  created_at: string;
+  id: number
+  nombre: string
+  telefono: string
+  mensaje: string
+  leido: boolean
+  created_at: string
 }
 
-// 1. NUEVA INTERFAZ DE MARCA
 interface Marca {
-  id: number;
-  nombre: string;
-  logo_url: string;
-  sitio_web: string;
+  id: number
+  nombre: string
+  logo_url: string
+  sitio_web: string
 }
+
+interface ProductoCableado {
+  id?: number
+  codigo: string
+  descripcion: string // Nombre comercial corto (Frente)
+  categoria: string
+  subcategoria: string
+  imagen_url: string
+  mostrar_precio: boolean
+  mostrar_existencias: boolean
+  precio?: number
+  existencias?: number
+}
+
+// Estructura de categorías y subcategorías de Cableado
+const ESTRUCTURA_CABLEADO: Record<string, string[]> = {
+  'Fuerza y Acometida': [
+    'Cable THHW-LS Cobre (Cal. 16 al 8)',
+    'Cable THHW Cobre Grueso (Cal. 1/0 a 4/0)',
+    'Cable de Aluminio Acometida (Aéreo / Subterráneo)',
+  ],
+  'Automotriz y Solar': [
+    'Cable Automotriz GPT',
+    'Cable Fotovoltaico Solar (Cal. 10)',
+    'Cable Portaelectrodo (Soldadora)',
+  ],
+  'Uso Rudo, Duplex y Romex': [
+    'Cable Uso Rudo (2, 3 y 4 Conductores)',
+    'Cable Dúplex (POT)',
+    'Cable Romex Plano',
+  ],
+  'Redes Ethernet y Bocina': [
+    'Cable Ethernet UTP (Interior / Exterior)',
+    'Cable para Bocina / Audio (Bicolor)',
+  ],
+}
+
+// Categorías completas del Menú Catálogo
+const CATEGORIAS_CATALOGO = [
+  { id: 'tuberia', nombre: 'Tuberia' },
+  { id: 'cajas_registros', nombre: 'Cajas y Registros' },
+  { id: 'cableado', nombre: 'Cableado' },
+  { id: 'iluminacion', nombre: 'Iluminacion' },
+  { id: 'control_fuerza', nombre: 'Control y Fuerza' },
+  { id: 'placas_apagadores', nombre: 'Placas y Apagadores' },
+  { id: 'media_tension', nombre: 'Media Tencion' },
+  { id: 'electronica', nombre: 'Electronica' },
+  { id: 'productos_temporada', nombre: 'Productos de Temporada' },
+]
 
 export default function Dashboard() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('carrusel')
+  const [activeTab, setActiveTab] = useState('cableado')
+
+  // Estado para menú desplegable de Catálogo
+  const [menuCatalogoAbierto, setMenuCatalogoAbierto] = useState(true)
 
   // ESTADOS EXISTENTES
   const [imagenes, setImagenes] = useState<ImagenCarrusel[]>([])
   const [nuevaImagen, setNuevaImagen] = useState('')
   const [mensajes, setMensajes] = useState<MensajeContacto[]>([])
 
-  // 2. NUEVOS ESTADOS PARA MARCAS
+  // ESTADOS MARCAS
   const [marcas, setMarcas] = useState<Marca[]>([])
   const [nombreMarca, setNombreMarca] = useState('')
   const [archivoLogo, setArchivoLogo] = useState<File | null>(null)
   const [sitioWebMarca, setSitioWebMarca] = useState('')
   const [subiendoMarca, setSubiendoMarca] = useState(false)
+
+  // ESTADOS CATÁLOGO (CABLEADO)
+  const [categoriaSel, setCategoriaSel] = useState('Fuerza y Acometida')
+  const [subcategoriaSel, setSubcategoriaSel] = useState('Cable THHW-LS Cobre (Cal. 16 al 8)')
+  
+  const [codigoProd, setCodigoProd] = useState('')
+  const [nombreComercialProd, setNombreComercialProd] = useState('') 
+  const [descripcionTecnicaDb, setDescripcionTecnicaDb] = useState('') 
+  const [buscandoDb, setBuscandoDb] = useState(false)
+  const [archivoImagenProd, setArchivoImagenProd] = useState<File | null>(null)
+  const [mostrarPrecio, setMostrarPrecio] = useState(true)
+  const [mostrarExistencias, setMostrarExistencias] = useState(true)
+  const [guardandoProducto, setGuardandoProducto] = useState(false)
+  const [productosCableado, setProductosCableado] = useState<ProductoCableado[]>([])
+  const [editandoId, setEditandoId] = useState<number | null>(null)
 
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'exito' })
   const [modal, setModal] = useState({ mostrar: false, id: 0, tipo: '' })
@@ -65,10 +131,14 @@ export default function Dashboard() {
     if (data) setMensajes(data)
   }
 
-  // 3. FUNCIÓN DE CARGA DE MARCAS
   const cargarMarcas = async () => {
     const { data } = await supabase.from('marcas').select('*').order('id', { ascending: false })
     if (data) setMarcas(data)
+  }
+
+  const cargarProductosCableado = async () => {
+    const { data } = await supabase.from('productos_cableado').select('*').order('id', { ascending: false })
+    if (data) setProductosCableado(data)
   }
 
   useEffect(() => {
@@ -81,10 +151,155 @@ export default function Dashboard() {
         cargarImagenes()
         cargarMensajes()
         cargarMarcas()
+        cargarProductosCableado()
       }
     }
     checkUser()
   }, [router])
+
+  const handleCategoriaChange = (cat: string) => {
+    setCategoriaSel(cat)
+    setSubcategoriaSel(ESTRUCTURA_CABLEADO[cat][0])
+  }
+
+  const buscarDescripcionBD = async (codigo: string) => {
+    setCodigoProd(codigo)
+    if (!codigo.trim()) {
+      setDescripcionTecnicaDb('')
+      return
+    }
+
+    setBuscandoDb(true)
+    const { data } = await supabase
+      .from('productos')
+      .select('descripcion')
+      .eq('codigo', codigo.trim().toUpperCase())
+      .single()
+
+    if (data) {
+      setDescripcionTecnicaDb(data.descripcion)
+    } else {
+      setDescripcionTecnicaDb('')
+    }
+    setBuscandoDb(false)
+  }
+
+  // ACCIÓN MASIVA: Cambiar visibilidad de Precios para TODOS los productos
+  const alternarPrecioTodos = async (estado: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('productos_cableado')
+        .update({ mostrar_precio: estado })
+        .neq('id', 0)
+
+      if (error) throw error
+
+      mostrarAlerta(`Precios ${estado ? 'activados' : 'ocultados'} para todos los productos.`, 'exito')
+      cargarProductosCableado()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al actualizar visibilidad'
+      mostrarAlerta(msg, 'error')
+    }
+  }
+
+  // ACCIÓN MASIVA: Cambiar visibilidad de Stock para TODOS los productos
+  const alternarExistenciasTodos = async (estado: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('productos_cableado')
+        .update({ mostrar_existencias: estado })
+        .neq('id', 0)
+
+      if (error) throw error
+
+      mostrarAlerta(`Stock ${estado ? 'activado' : 'ocultado'} para todos los productos.`, 'exito')
+      cargarProductosCableado()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al actualizar visibilidad'
+      mostrarAlerta(msg, 'error')
+    }
+  }
+
+  const guardarProductoCableado = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!codigoProd || !nombreComercialProd) {
+      mostrarAlerta('Completa el código y el nombre comercial del producto.', 'error')
+      return
+    }
+
+    setGuardandoProducto(true)
+    try {
+      let imagenUrl = `https://raw.githubusercontent.com/albizteguielectric/catalogo-img/main/${codigoProd.toUpperCase()}.jpg`
+
+      if (archivoImagenProd) {
+        const dataImg = new FormData()
+        dataImg.append('codigo', codigoProd)
+        dataImg.append('imagen', archivoImagenProd)
+
+        const resImg = await fetch('/api/admin/subir-imagen', {
+          method: 'POST',
+          body: dataImg,
+        })
+
+        const contentType = resImg.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          const textError = await resImg.text()
+          throw new Error(`Error en el servidor de imágenes: ${textError.substring(0, 80)}...`)
+        }
+
+        const resultImg = await resImg.json()
+
+        if (!resImg.ok) {
+          throw new Error(resultImg.error || 'Error al procesar la imagen en GitHub')
+        }
+
+        imagenUrl = resultImg.imagen_url
+      }
+
+      const payload = {
+        codigo: codigoProd.toUpperCase(),
+        descripcion: nombreComercialProd,
+        categoria: categoriaSel,
+        subcategoria: subcategoriaSel,
+        imagen_url: imagenUrl,
+        mostrar_precio: mostrarPrecio,
+        mostrar_existencias: mostrarExistencias,
+      }
+
+      if (editandoId) {
+        const { error } = await supabase.from('productos_cableado').update(payload).eq('id', editandoId)
+        if (error) throw error
+        mostrarAlerta('Producto actualizado correctamente.', 'exito')
+      } else {
+        const { error } = await supabase.from('productos_cableado').insert([payload])
+        if (error) throw error
+        mostrarAlerta('Producto publicado en el catálogo.', 'exito')
+      }
+
+      setCodigoProd('')
+      setNombreComercialProd('')
+      setDescripcionTecnicaDb('')
+      setArchivoImagenProd(null)
+      setEditandoId(null)
+      cargarProductosCableado()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar producto'
+      mostrarAlerta(msg, 'error')
+    } finally {
+      setGuardandoProducto(false)
+    }
+  }
+
+  const prepararEdicion = (p: ProductoCableado) => {
+    setEditandoId(p.id || null)
+    setCategoriaSel(p.categoria)
+    setSubcategoriaSel(p.subcategoria)
+    setCodigoProd(p.codigo)
+    setNombreComercialProd(p.descripcion)
+    setMostrarPrecio(p.mostrar_precio)
+    setMostrarExistencias(p.mostrar_existencias)
+    buscarDescripcionBD(p.codigo)
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -104,88 +319,70 @@ export default function Dashboard() {
     }
   }
 
-  // 4. SUBIDA DE MARCA A SUPABASE STORAGE Y TABLA (SIN TIPOS ANY)
-const agregarMarca = async (e: React.FormEvent) => {
-  e.preventDefault()
-  if (!nombreMarca || !archivoLogo || !sitioWebMarca) {
-    mostrarAlerta('Por favor completa todos los campos de la marca.', 'error')
-    return
+  const agregarMarca = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!nombreMarca || !archivoLogo || !sitioWebMarca) {
+      mostrarAlerta('Por favor completa todos los campos de la marca.', 'error')
+      return
+    }
+
+    setSubiendoMarca(true)
+    try {
+      const fileExt = archivoLogo.name.split('.').pop()
+      const fileName = `${Date.now()}.${fileExt}`
+      const filePath = `logos/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('marcas-logos')
+        .upload(filePath, archivoLogo, { cacheControl: '3600', upsert: false })
+
+      if (uploadError) throw uploadError
+
+      const { data: publicUrlData } = supabase.storage
+        .from('marcas-logos')
+        .getPublicUrl(filePath)
+
+      const { error: insertError } = await supabase.from('marcas').insert([
+        { 
+          nombre: nombreMarca, 
+          logo_url: publicUrlData.publicUrl, 
+          sitio_web: sitioWebMarca 
+        }
+      ])
+
+      if (insertError) throw insertError
+
+      setNombreMarca('')
+      setSitioWebMarca('')
+      setArchivoLogo(null)
+      cargarMarcas()
+      mostrarAlerta('Marca agregada exitosamente.', 'exito')
+    } catch (err: unknown) {
+      const mensajeError = err instanceof Error ? err.message : 'Error al agregar la marca'
+      mostrarAlerta(mensajeError, 'error')
+    } finally {
+      setSubiendoMarca(false)
+    }
   }
-
-  setSubiendoMarca(true)
-
-  try {
-    const fileExt = archivoLogo.name.split('.').pop()
-    const fileName = `${Date.now()}.${fileExt}`
-    const filePath = `logos/${fileName}`
-
-    // Subida al Bucket 'marcas-logos'
-    const { error: uploadError } = await supabase.storage
-      .from('marcas-logos')
-      .upload(filePath, archivoLogo, { cacheControl: '3600', upsert: false })
-
-    if (uploadError) throw uploadError
-
-    const { data: publicUrlData } = supabase.storage
-      .from('marcas-logos')
-      .getPublicUrl(filePath)
-
-    const logoPublicUrl = publicUrlData.publicUrl
-
-    const { error: insertError } = await supabase.from('marcas').insert([
-      { 
-        nombre: nombreMarca, 
-        logo_url: logoPublicUrl, 
-        sitio_web: sitioWebMarca 
-      }
-    ])
-
-    if (insertError) throw insertError
-
-    setNombreMarca('')
-    setSitioWebMarca('')
-    setArchivoLogo(null)
-
-    const fileInput = document.getElementById('logoInputDashboard') as HTMLInputElement
-    if (fileInput) fileInput.value = ''
-
-    cargarMarcas()
-    mostrarAlerta('Marca agregada exitosamente.', 'exito')
-
-  } catch (err: unknown) {
-    // Manejo estricto de errores para evitar la regla 'no-explicit-any'
-    const mensajeError = err instanceof Error ? err.message : 'Error al agregar la marca'
-    mostrarAlerta(mensajeError, 'error')
-  } finally {
-    setSubiendoMarca(false)
-  }
-}
 
   const alternarLeido = async (id: number, estadoActual: boolean) => {
     const { error } = await supabase.from('buzon_contacto').update({ leido: !estadoActual }).eq('id', id)
     if (!error) cargarMensajes()
   }
 
-  // 5. ELIMINACIÓN AMPLIADA PARA CUBRIR MARCAS
   const ejecutarEliminacion = async () => {
     if (modal.tipo === 'imagen') {
       const { error } = await supabase.from('carrusel_inicio').delete().eq('id', modal.id)
-      if (!error) {
-        cargarImagenes()
-        mostrarAlerta('Imagen eliminada.', 'exito')
-      }
+      if (!error) { cargarImagenes(); mostrarAlerta('Imagen eliminada.', 'exito') }
     } else if (modal.tipo === 'mensaje') {
       const { error } = await supabase.from('buzon_contacto').delete().eq('id', modal.id)
-      if (!error) {
-        cargarMensajes()
-        mostrarAlerta('Mensaje eliminado.', 'exito')
-      }
+      if (!error) { cargarMensajes(); mostrarAlerta('Mensaje eliminado.', 'exito') }
     } else if (modal.tipo === 'marca') {
       const { error } = await supabase.from('marcas').delete().eq('id', modal.id)
-      if (!error) {
-        cargarMarcas()
-        mostrarAlerta('Marca eliminada.', 'exito')
-      }
+      if (!error) { cargarMarcas(); mostrarAlerta('Marca eliminada.', 'exito') }
+    } else if (modal.tipo === 'producto_cableado') {
+      const { error } = await supabase.from('productos_cableado').delete().eq('id', modal.id)
+      if (!error) { cargarProductosCableado(); mostrarAlerta('Producto eliminado del catálogo.', 'exito') }
     }
     setModal({ mostrar: false, id: 0, tipo: '' })
   }
@@ -214,17 +411,20 @@ const agregarMarca = async (e: React.FormEvent) => {
             <p className="text-gray-600 mb-8 font-medium">
               Esta acción eliminará definitivamente {
                 modal.tipo === 'imagen' ? 'esta imagen del carrusel' : 
-                modal.tipo === 'mensaje' ? 'este mensaje' : 'esta marca comercial'
+                modal.tipo === 'mensaje' ? 'este mensaje' : 
+                modal.tipo === 'marca' ? 'esta marca comercial' : 'este producto del catálogo'
               }. No podrás recuperar la información.
             </p>
             <div className="flex justify-end gap-4">
               <button 
+                type="button"
                 onClick={() => setModal({ mostrar: false, id: 0, tipo: '' })}
                 className="px-5 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors"
               >
                 Cancelar
               </button>
               <button 
+                type="button"
                 onClick={ejecutarEliminacion}
                 className="px-5 py-2 bg-red-500 text-white font-bold hover:bg-red-600 rounded-lg shadow-md transition-colors"
               >
@@ -243,24 +443,61 @@ const agregarMarca = async (e: React.FormEvent) => {
         </div>
         
         <nav className="flex-grow p-4 space-y-2">
+          
+          {/* BOTÓN DESPLEGABLE: CATÁLOGO */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setMenuCatalogoAbierto(!menuCatalogoAbierto)}
+              className="w-full flex justify-between items-center px-4 py-3 rounded-lg font-bold text-gray-200 hover:bg-blue-900 transition-colors shadow-sm"
+            >
+              <span>Catálogo</span>
+              <span className="text-xs transform transition-transform duration-200">
+                {menuCatalogoAbierto ? '▲' : '▼'}
+              </span>
+            </button>
+
+            {/* SUB-CATEGORÍAS DESPLEGABLES */}
+            {menuCatalogoAbierto && (
+              <div className="mt-1 ml-3 pl-3 border-l-2 border-orange-500/50 space-y-1">
+                {CATEGORIAS_CATALOGO.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setActiveTab(cat.id)}
+                    className={`w-full text-left px-3 py-2 rounded-md font-semibold text-xs transition-colors block ${
+                      activeTab === cat.id 
+                        ? 'bg-orange-500 text-white font-bold' 
+                        : 'text-gray-300 hover:bg-blue-900 hover:text-white'
+                    }`}
+                  >
+                    {cat.nombre}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button 
+            type="button"
             onClick={() => setActiveTab('carrusel')}
-            className={`w-full text-left px-4 py-3 rounded-lg font-bold transition-colors shadow-sm ${activeTab === 'carrusel' ? 'bg-blue-900 text-white' : 'text-gray-300 hover:bg-blue-900 hover:text-white'}`}
+            className={`w-full text-left px-4 py-3 rounded-lg font-bold transition-colors shadow-sm ${activeTab === 'carrusel' ? 'bg-orange-500 text-white' : 'text-gray-300 hover:bg-blue-900 hover:text-white'}`}
           >
             Carrusel de Inicio
           </button>
           
-          {/* NUEVO BOTÓN PARA PESTAÑA MARCAS */}
           <button 
+            type="button"
             onClick={() => setActiveTab('marcas')}
-            className={`w-full text-left px-4 py-3 rounded-lg font-bold transition-colors shadow-sm ${activeTab === 'marcas' ? 'bg-blue-900 text-white' : 'text-gray-300 hover:bg-blue-900 hover:text-white'}`}
+            className={`w-full text-left px-4 py-3 rounded-lg font-bold transition-colors shadow-sm ${activeTab === 'marcas' ? 'bg-orange-500 text-white' : 'text-gray-300 hover:bg-blue-900 hover:text-white'}`}
           >
             Marcas Oficiales
           </button>
 
           <button 
+            type="button"
             onClick={() => setActiveTab('buzon')}
-            className={`w-full text-left flex justify-between items-center px-4 py-3 rounded-lg font-bold transition-colors shadow-sm ${activeTab === 'buzon' ? 'bg-blue-900 text-white' : 'text-gray-300 hover:bg-blue-900 hover:text-white'}`}
+            className={`w-full text-left flex justify-between items-center px-4 py-3 rounded-lg font-bold transition-colors shadow-sm ${activeTab === 'buzon' ? 'bg-orange-500 text-white' : 'text-gray-300 hover:bg-blue-900 hover:text-white'}`}
           >
             <span>Buzón</span>
             {mensajes.filter(m => !m.leido).length > 0 && (
@@ -272,7 +509,7 @@ const agregarMarca = async (e: React.FormEvent) => {
         </nav>
         
         <div className="p-4 border-t border-blue-900/50 mb-16 md:mb-0">
-          <button onClick={handleLogout} className="w-full text-center px-4 py-2 rounded-lg border border-red-500/50 text-red-400 font-bold hover:bg-red-500 hover:text-white transition-colors">
+          <button type="button" onClick={handleLogout} className="w-full text-center px-4 py-2 rounded-lg border border-red-500/50 text-red-400 font-bold hover:bg-red-500 hover:text-white transition-colors">
             Cerrar Sesión
           </button>
         </div>
@@ -282,6 +519,261 @@ const agregarMarca = async (e: React.FormEvent) => {
       <main className="flex-grow p-4 sm:p-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-10 min-h-[500px]">
           
+          {/* PESTAÑA: CATÁLOGO CABLEADO */}
+          {activeTab === 'cableado' && (
+            <div>
+              <div className="flex flex-col lg:flex-row justify-between lg:items-center mb-6 gap-4">
+                <h1 className="text-3xl font-extrabold text-blue-900">Catálogo: Cableado</h1>
+
+                {/* BOTONES DE CONTROL GLOBAL DE VISIBILIDAD */}
+                <div className="flex flex-wrap items-center gap-3 bg-gray-50 p-2 rounded-xl border border-gray-200">
+                  <span className="text-xs font-bold text-gray-600 px-2">Control Global:</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => alternarPrecioTodos(true)}
+                      className="px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg text-xs font-bold transition-colors"
+                    >
+                      Mostrar Precios
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => alternarPrecioTodos(false)}
+                      className="px-3 py-1.5 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg text-xs font-bold transition-colors"
+                    >
+                      Ocultar Precios
+                    </button>
+                  </div>
+                  <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => alternarExistenciasTodos(true)}
+                      className="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-xs font-bold transition-colors"
+                    >
+                      Mostrar Stock
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => alternarExistenciasTodos(false)}
+                      className="px-3 py-1.5 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg text-xs font-bold transition-colors"
+                    >
+                      Ocultar Stock
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* FORMULARIO DE REGISTRO */}
+              <form onSubmit={guardarProductoCableado} className="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-6">
+                <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                  <h3 className="font-bold text-blue-950 text-lg">
+                    {editandoId ? 'Editar Producto' : 'Agregar Nuevo Artículo'}
+                  </h3>
+                  {editandoId && (
+                    <button 
+                      type="button" 
+                      onClick={() => { setEditandoId(null); setCodigoProd(''); setNombreComercialProd(''); setDescripcionTecnicaDb(''); }}
+                      className="text-xs font-bold text-red-500 hover:underline"
+                    >
+                      Cancelar Edición
+                    </button>
+                  )}
+                </div>
+
+                {/* CATEGORÍAS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Categoría Principal</label>
+                    <select
+                      value={categoriaSel}
+                      onChange={(e) => handleCategoriaChange(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white font-semibold"
+                    >
+                      {Object.keys(ESTRUCTURA_CABLEADO).map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Subcategoría Específica</label>
+                    <select
+                      value={subcategoriaSel}
+                      onChange={(e) => setSubcategoriaSel(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
+                    >
+                      {ESTRUCTURA_CABLEADO[categoriaSel].map((sub) => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* CÓDIGO, NOMBRE COMERCIAL Y FICHA TÉCNICA BD */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Código del Producto</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. THHW-12"
+                      value={codigoProd}
+                      onChange={(e) => buscarDescripcionBD(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white font-mono uppercase"
+                    />
+                    {buscandoDb && <p className="text-xs text-orange-500 mt-1 animate-pulse">Buscando en BD...</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Nombre Comercial (Frente Tarjeta)</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Cable #12 Uso Doméstico"
+                      value={nombreComercialProd}
+                      onChange={(e) => setNombreComercialProd(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Ficha Técnica Detectada (Reverso BD)</label>
+                    <input
+                      type="text"
+                      disabled
+                      placeholder="Se cargará desde la base de datos..."
+                      value={descripcionTecnicaDb}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 bg-gray-100 italic"
+                    />
+                  </div>
+                </div>
+
+                {/* IMAGEN Y CHECKBOXES */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Imagen (Fondo blanco a GitHub catalogo-img)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setArchivoImagenProd(e.target.files[0])
+                        }
+                      }}
+                      className="w-full border border-gray-300 p-1.5 rounded-lg text-xs text-gray-700 bg-white file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-orange-100 file:text-orange-700"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-6 pt-4">
+                    <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={mostrarPrecio}
+                        onChange={(e) => setMostrarPrecio(e.target.checked)}
+                        className="w-4 h-4 text-orange-500 rounded focus:ring-orange-400"
+                      />
+                      Mostrar Precio
+                    </label>
+
+                    <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={mostrarExistencias}
+                        onChange={(e) => setMostrarExistencias(e.target.checked)}
+                        className="w-4 h-4 text-orange-500 rounded focus:ring-orange-400"
+                      />
+                      Mostrar Stock
+                    </label>
+                  </div>
+
+                  <div className="text-right pt-4">
+                    <button
+                      type="submit"
+                      disabled={guardandoProducto}
+                      className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-2.5 rounded-xl text-sm transition-colors shadow-md disabled:opacity-50"
+                    >
+                      {guardandoProducto ? 'Procesando e Imagen...' : editandoId ? 'Guardar Cambios' : 'Publicar Producto'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              {/* TABLA DE PRODUCTOS */}
+              <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                <table className="w-full text-left text-sm text-gray-700">
+                  <thead className="bg-blue-950 text-white text-xs uppercase">
+                    <tr>
+                      <th className="py-3 px-4 font-bold">Código / Foto</th>
+                      <th className="py-3 px-4 font-bold">Nombre Comercial</th>
+                      <th className="py-3 px-4 font-bold">Subcategoría</th>
+                      <th className="py-3 px-4 font-bold text-center">Visibilidad</th>
+                      <th className="py-3 px-4 font-bold text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {productosCableado.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-gray-500 font-medium">
+                          No hay productos registrados en la sección de cableado.
+                        </td>
+                      </tr>
+                    ) : (
+                      productosCableado.map((p) => (
+                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-3 px-4 font-bold text-blue-900 flex items-center gap-3">
+                            <div className="w-10 h-10 relative bg-gray-50 border rounded-lg p-1 flex items-center justify-center overflow-hidden">
+                              <img src={p.imagen_url} alt={p.codigo} className="w-full h-full object-contain" />
+                            </div>
+                            <span>{p.codigo}</span>
+                          </td>
+                          <td className="py-3 px-4 font-medium text-gray-800 max-w-xs truncate">{p.descripcion}</td>
+                          <td className="py-3 px-4 text-xs font-semibold text-orange-600">{p.subcategoria}</td>
+                          <td className="py-3 px-4 text-center text-xs">
+                            <span className={`px-2 py-1 rounded-full font-bold ${p.mostrar_precio ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                              Precio: {p.mostrar_precio ? 'SI' : 'NO'}
+                            </span>
+                            <span className={`ml-2 px-2 py-1 rounded-full font-bold ${p.mostrar_existencias ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
+                              Stock: {p.mostrar_existencias ? 'SI' : 'NO'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right space-x-3">
+                            <button
+                              type="button"
+                              onClick={() => prepararEdicion(p)}
+                              className="text-blue-900 hover:text-orange-500 font-bold text-xs"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setModal({ mostrar: true, id: p.id!, tipo: 'producto_cableado' })}
+                              className="text-red-500 hover:text-red-700 font-bold text-xs"
+                            >
+                              Eliminar
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* VISTAS TEMPORALES PARA LAS DEMÁS CATEGORÍAS */}
+          {activeTab !== 'cableado' && activeTab !== 'carrusel' && activeTab !== 'marcas' && activeTab !== 'buzon' && (
+            <div className="py-12 text-center">
+              <h1 className="text-3xl font-extrabold text-blue-900 mb-2">
+                Catálogo: {CATEGORIAS_CATALOGO.find(c => c.id === activeTab)?.nombre}
+              </h1>
+              <p className="text-gray-500 text-sm">
+                Sección lista para conectar sus productos de la base de datos.
+              </p>
+            </div>
+          )}
+
           {/* PESTAÑA: CARRUSEL */}
           {activeTab === 'carrusel' && (
             <div>
@@ -313,6 +805,7 @@ const agregarMarca = async (e: React.FormEvent) => {
                       <div className="p-4 bg-gray-50 flex justify-between items-center">
                         <span className="text-xs font-bold text-gray-500">Orden: {img.orden}</span>
                         <button 
+                          type="button"
                           onClick={() => setModal({ mostrar: true, id: img.id, tipo: 'imagen' })} 
                           className="text-red-500 hover:text-red-700 text-sm font-bold"
                         >
@@ -326,12 +819,11 @@ const agregarMarca = async (e: React.FormEvent) => {
             </div>
           )}
 
-          {/* NUEVA PESTAÑA: MARCAS */}
+          {/* PESTAÑA: MARCAS */}
           {activeTab === 'marcas' && (
             <div>
               <h1 className="text-3xl font-extrabold text-blue-900 mb-6">Administrar Marcas Comerciales</h1>
 
-              {/* FORMULARIO DE REGISTRO */}
               <form onSubmit={agregarMarca} className="mb-8 bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-4">
                 <h3 className="font-bold text-blue-950 text-base">Registrar Nueva Marca</h3>
                 
@@ -351,7 +843,6 @@ const agregarMarca = async (e: React.FormEvent) => {
                   <div>
                     <label className="block text-xs font-bold text-gray-600 mb-1">Logotipo (Imagen)</label>
                     <input 
-                      id="logoInputDashboard"
                       type="file" 
                       accept="image/*"
                       required
@@ -386,7 +877,6 @@ const agregarMarca = async (e: React.FormEvent) => {
                 </button>
               </form>
 
-              {/* LISTADO DE MARCAS */}
               <div className="overflow-x-auto rounded-xl border border-gray-200">
                 <table className="w-full text-left text-sm text-gray-700">
                   <thead className="bg-blue-950 text-white text-xs uppercase">
@@ -412,8 +902,6 @@ const agregarMarca = async (e: React.FormEvent) => {
                             </div>
                             {m.nombre}
                           </td>
-                          
-                          {/* CELDA MODIFICADA PARA CORTAR LA URL */}
                           <td className="py-3 px-4 text-orange-500 font-medium max-w-[180px] sm:max-w-[250px]">
                             <a 
                               href={m.sitio_web} 
@@ -425,9 +913,9 @@ const agregarMarca = async (e: React.FormEvent) => {
                               {m.sitio_web}
                             </a>
                           </td>
-
                           <td className="py-3 px-4 text-right">
                             <button
+                              type="button"
                               onClick={() => setModal({ mostrar: true, id: m.id, tipo: 'marca' })}
                               className="text-red-500 hover:text-red-700 font-bold text-xs"
                             >
@@ -479,12 +967,14 @@ const agregarMarca = async (e: React.FormEvent) => {
                       
                       <div className="flex gap-4 border-t border-gray-100 pt-3">
                         <button 
+                          type="button"
                           onClick={() => alternarLeido(msj.id, msj.leido)}
                           className={`text-sm font-bold ${msj.leido ? 'text-gray-500 hover:text-blue-900' : 'text-blue-900 hover:text-orange-500'}`}
                         >
                           {msj.leido ? 'Marcar como no leído' : 'Marcar como leído'}
                         </button>
                         <button 
+                          type="button"
                           onClick={() => setModal({ mostrar: true, id: msj.id, tipo: 'mensaje' })}
                           className="text-sm font-bold text-red-400 hover:text-red-600"
                         >
