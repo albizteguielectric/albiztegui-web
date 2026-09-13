@@ -1,85 +1,113 @@
-import { NextResponse } from 'next/server'
-import { Octokit } from '@octokit/rest'
-import sharp from 'sharp'
+'use client'
 
-// Forzar el runtime Node.js necesario para módulos nativos como sharp
-export const runtime = 'nodejs'
+import { useState } from 'react'
 
-export async function POST(req: Request) {
-  try {
-    const token = process.env.GITHUB_TOKEN_ADMIN
-    if (!token) {
-      return NextResponse.json(
-        { error: 'No se ha configurado la variable GITHUB_TOKEN_ADMIN en el servidor.' },
-        { status: 500 }
-      )
-    }
+export default function AdminPage() {
+  const [codigo, setCodigo] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [cargando, setCargando] = useState(false)
+  const [resultado, setResultado] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-    const octokit = new Octokit({ auth: token })
-    const formData = await req.formData()
-    const codigo = formData.get('codigo') as string | null
-    const file = formData.get('imagen') as File | null
-
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault()
     if (!codigo || !file) {
-      return NextResponse.json({ error: 'Código e imagen son requeridos' }, { status: 400 })
+      setError('Debes ingresar el código y seleccionar una imagen.')
+      return
     }
 
-    const codigoLimpio = codigo.trim().toUpperCase()
+    setCargando(true)
+    setError(null)
+    setResultado(null)
 
-    // 1. Convertir la imagen enviada a Buffer
-    const arrayBuffer = await file.arrayBuffer()
-    const inputBuffer = Buffer.from(arrayBuffer)
-
-    // 2. Procesar con Sharp (Aplanar sobre fondo blanco puro y convertir a JPEG)
-    const processedBuffer = await sharp(inputBuffer)
-      .resize(600, 600, {
-        fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
-      })
-      .flatten({ background: '#FFFFFF' })
-      .jpeg({ quality: 85 })
-      .toBuffer()
-
-    const contentBase64 = processedBuffer.toString('base64')
-    const fileName = `${codigoLimpio}.jpg`
-    const repoOwner = 'albizteguielectric'
-    const repoName = 'catalogo-img'
-
-    // 3. Buscar si el archivo ya existe para obtener el SHA de actualización
-    let sha: string | undefined = undefined
     try {
-      const { data: fileData } = await octokit.repos.getContent({
-        owner: repoOwner,
-        repo: repoName,
-        path: fileName,
+      const formData = new FormData()
+      formData.append('codigo', codigo)
+      formData.append('imagen', file)
+
+      // Llamada a la API Route de subida
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
       })
-      if (!Array.isArray(fileData) && fileData.sha) {
-        sha = fileData.sha
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al subir la imagen')
       }
-    } catch {
-      // Si el archivo no existe aún, se procederá a crearlo
+
+      setResultado(data.imagen_url)
+      setCodigo('')
+      setFile(null)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al procesar la solicitud'
+      setError(msg)
+    } finally {
+      setCargando(false)
     }
-
-    // 4. Subir la imagen al repositorio catalogo-img
-    await octokit.repos.createOrUpdateFileContents({
-      owner: repoOwner,
-      repo: repoName,
-      path: fileName,
-      message: `auto: actualización de imagen para producto ${codigoLimpio}`,
-      content: contentBase64,
-      branch: 'main',
-      ...(sha ? { sha } : {}),
-    })
-
-    const rawImageUrl = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/${fileName}`
-
-    return NextResponse.json({
-      success: true,
-      imagen_url: rawImageUrl,
-    })
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error interno al procesar la imagen'
-    console.error('Error en API subir-imagen:', error)
-    return NextResponse.json({ error: msg }, { status: 500 })
   }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 pt-24">
+      <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-md w-full">
+        <h1 className="text-2xl font-black text-blue-900 mb-2 text-center">
+          Panel de Administración
+        </h1>
+        <p className="text-sm text-gray-600 mb-6 text-center">
+          Subida y procesamiento automático de imágenes a GitHub
+        </p>
+
+        <form onSubmit={handleUpload} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+              Código del Producto
+            </label>
+            <input
+              type="text"
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              placeholder="Ej: THHW-10"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+              Imagen del Producto
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={cargando}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50"
+          >
+            {cargando ? 'Procesando y Subiendo...' : 'Subir Imagen a GitHub'}
+          </button>
+        </form>
+
+        {error && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-medium text-center">
+            {error}
+          </div>
+        )}
+
+        {resultado && (
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-xs font-medium text-center break-all">
+            <p className="font-bold mb-1">¡Imagen subida con éxito!</p>
+            <a href={resultado} target="_blank" rel="noopener noreferrer" className="underline">
+              {resultado}
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
