@@ -483,7 +483,6 @@ export default function CableadoPage() {
             </div>
           )}
         </div>
-
         {/* COTIZADOR */}
         <div className="bg-gradient-to-r from-blue-950 to-blue-900 rounded-3xl p-8 sm:p-12 text-center text-white border-b-8 border-orange-500">
           <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">¿Requieres un metraje especial o bobinas completas?</h2>
