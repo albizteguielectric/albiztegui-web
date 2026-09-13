@@ -398,7 +398,7 @@ export default function CableadoPage() {
                       {/* FRENTE DE LA TARJETA */}
                       <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
                         
-                        {/* CONTENEDOR DE IMAGEN (ABRE EL POP-UP POP-UP AL DAR CLIC) */}
+                        {/* CONTENEDOR DE IMAGEN (ABRE EL POP-UP AL DAR CLIC) */}
                         <div 
                           onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
                           className="w-full h-24 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors"
@@ -483,6 +483,7 @@ export default function CableadoPage() {
             </div>
           )}
         </div>
+
         {/* COTIZADOR */}
         <div className="bg-gradient-to-r from-blue-950 to-blue-900 rounded-3xl p-8 sm:p-12 text-center text-white border-b-8 border-orange-500">
           <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">¿Requieres un metraje especial o bobinas completas?</h2>
