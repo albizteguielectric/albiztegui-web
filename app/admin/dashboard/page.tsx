@@ -38,6 +38,7 @@ interface ProductoCableado {
   imagen_url: string
   mostrar_precio: boolean
   mostrar_existencias: boolean
+  unidad_medida?: string // Campo para tipo de venta (pieza, metro, kg, etc.)
   precio?: number
   existencias?: number
 }
@@ -105,6 +106,7 @@ export default function Dashboard() {
   const [codigoProd, setCodigoProd] = useState('')
   const [nombreComercialProd, setNombreComercialProd] = useState('') 
   const [descripcionTecnicaDb, setDescripcionTecnicaDb] = useState('') 
+  const [unidadMedida, setUnidadMedida] = useState('pieza')
   const [buscandoDb, setBuscandoDb] = useState(false)
   const [archivoImagenProd, setArchivoImagenProd] = useState<File | null>(null)
   const [mostrarPrecio, setMostrarPrecio] = useState(true)
@@ -264,6 +266,7 @@ export default function Dashboard() {
         imagen_url: imagenUrl,
         mostrar_precio: mostrarPrecio,
         mostrar_existencias: mostrarExistencias,
+        unidad_medida: unidadMedida,
       }
 
       if (editandoId) {
@@ -279,6 +282,7 @@ export default function Dashboard() {
       setCodigoProd('')
       setNombreComercialProd('')
       setDescripcionTecnicaDb('')
+      setUnidadMedida('pieza')
       setArchivoImagenProd(null)
       setEditandoId(null)
       cargarProductosCableado()
@@ -298,6 +302,7 @@ export default function Dashboard() {
     setNombreComercialProd(p.descripcion)
     setMostrarPrecio(p.mostrar_precio)
     setMostrarExistencias(p.mostrar_existencias)
+    setUnidadMedida(p.unidad_medida || 'pieza')
     buscarDescripcionBD(p.codigo)
   }
 
@@ -573,7 +578,7 @@ export default function Dashboard() {
                   {editandoId && (
                     <button 
                       type="button" 
-                      onClick={() => { setEditandoId(null); setCodigoProd(''); setNombreComercialProd(''); setDescripcionTecnicaDb(''); }}
+                      onClick={() => { setEditandoId(null); setCodigoProd(''); setNombreComercialProd(''); setDescripcionTecnicaDb(''); setUnidadMedida('pieza'); }}
                       className="text-xs font-bold text-red-500 hover:underline"
                     >
                       Cancelar Edición
@@ -649,7 +654,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* IMAGEN Y CHECKBOXES */}
+                {/* IMAGEN, UNIDAD DE MEDIDA Y BOTÓN PUBLICAR */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">Imagen (Fondo blanco a GitHub catalogo-img)</label>
@@ -664,27 +669,22 @@ export default function Dashboard() {
                       className="w-full border border-gray-300 p-1.5 rounded-lg text-xs text-gray-700 bg-white file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-orange-100 file:text-orange-700"
                     />
                   </div>
-
-                  <div className="flex items-center gap-6 pt-4">
-                    <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={mostrarPrecio}
-                        onChange={(e) => setMostrarPrecio(e.target.checked)}
-                        className="w-4 h-4 text-orange-500 rounded focus:ring-orange-400"
-                      />
-                      Mostrar Precio
+                  
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Unidad de Medida
                     </label>
-
-                    <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={mostrarExistencias}
-                        onChange={(e) => setMostrarExistencias(e.target.checked)}
-                        className="w-4 h-4 text-orange-500 rounded focus:ring-orange-400"
-                      />
-                      Mostrar Stock
-                    </label>
+                    <select
+                      value={unidadMedida}
+                      onChange={(e) => setUnidadMedida(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white font-semibold"
+                    >
+                      <option value="pieza">Pieza (pza)</option>
+                      <option value="metro">Metro (m)</option>
+                      <option value="kilogramo">Kilogramo (kg)</option>
+                      <option value="rollo">Rollo</option>
+                      <option value="caja">Caja</option>
+                    </select>
                   </div>
 
                   <div className="text-right pt-4">
@@ -707,6 +707,7 @@ export default function Dashboard() {
                       <th className="py-3 px-4 font-bold">Código / Foto</th>
                       <th className="py-3 px-4 font-bold">Nombre Comercial</th>
                       <th className="py-3 px-4 font-bold">Subcategoría</th>
+                      <th className="py-3 px-4 font-bold text-center">Unidad</th>
                       <th className="py-3 px-4 font-bold text-center">Visibilidad</th>
                       <th className="py-3 px-4 font-bold text-right">Acciones</th>
                     </tr>
@@ -714,7 +715,7 @@ export default function Dashboard() {
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {productosCableado.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-gray-500 font-medium">
+                        <td colSpan={6} className="py-8 text-center text-gray-500 font-medium">
                           No hay productos registrados en la sección de cableado.
                         </td>
                       </tr>
@@ -729,6 +730,9 @@ export default function Dashboard() {
                           </td>
                           <td className="py-3 px-4 font-medium text-gray-800 max-w-xs truncate">{p.descripcion}</td>
                           <td className="py-3 px-4 text-xs font-semibold text-orange-600">{p.subcategoria}</td>
+                          <td className="py-3 px-4 text-center text-xs font-bold text-blue-900 capitalize">
+                            {p.unidad_medida || 'pieza'}
+                          </td>
                           <td className="py-3 px-4 text-center text-xs">
                             <span className={`px-2 py-1 rounded-full font-bold ${p.mostrar_precio ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
                               Precio: {p.mostrar_precio ? 'SI' : 'NO'}

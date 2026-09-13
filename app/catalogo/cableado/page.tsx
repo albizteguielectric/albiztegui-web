@@ -60,6 +60,7 @@ interface ProductoCableado {
   imagen_url: string
   mostrar_precio: boolean
   mostrar_existencias: boolean
+  unidad_medida?: string // Campo dinámico para la unidad de venta
 }
 
 interface DatosInventario {
@@ -160,6 +161,21 @@ export default function CableadoPage() {
     // Evita que la tarjeta gire al hacer clic sobre la imagen
     e.stopPropagation()
     setImagenModal({ url, codigo })
+  }
+
+  // Función para formatear las existencias según la unidad de medida
+  const formatearExistencias = (existencias: number, unidad?: string) => {
+    if (existencias <= 0) return 'Agotado'
+
+    const u = (unidad || 'pieza').toLowerCase()
+    let etiqueta = 'pza(s)'
+
+    if (u === 'metro' || u === 'm') etiqueta = 'm'
+    else if (u === 'kilogramo' || u === 'kg') etiqueta = 'kg'
+    else if (u === 'rollo') etiqueta = 'rollo(s)'
+    else if (u === 'caja') etiqueta = 'caja(s)'
+
+    return `${existencias} ${etiqueta}`
   }
 
   const tipoSeleccionado = tiposCableado.find(t => t.id === tipoActivo) || tiposCableado[0]
@@ -442,7 +458,7 @@ export default function CableadoPage() {
                             {descripcionReverso}
                           </p>
 
-                          {/* PRECIO Y STOCK DINÁMICO */}
+                          {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
                           <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
                             {item.mostrar_precio && (
                               <div className="flex justify-between items-center">
@@ -457,7 +473,7 @@ export default function CableadoPage() {
                               <div className="flex justify-between items-center">
                                 <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
                                 <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                  {existenciasFinales > 0 ? `${existenciasFinales} pza(s)` : 'Agotado'}
+                                  {formatearExistencias(existenciasFinales, item.unidad_medida)}
                                 </span>
                               </div>
                             )}

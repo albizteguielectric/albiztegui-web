@@ -1,47 +1,70 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '../lib/supabase'
+import Link from 'next/link'
 
-export default function AdminPage() {
-  const [codigo, setCodigo] = useState('')
-  const [file, setFile] = useState<File | null>(null)
+export default function AdminLoginPage() {
+  const [correo, setCorreo] = useState('')
+  const [password, setPassword] = useState('')
   const [cargando, setCargando] = useState(false)
-  const [resultado, setResultado] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
-  const handleUpload = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!codigo || !file) {
-      setError('Debes ingresar el código y seleccionar una imagen.')
+    if (!correo || !password) {
+      setError('Por favor, ingresa tu correo y contraseña.')
       return
     }
 
     setCargando(true)
     setError(null)
-    setResultado(null)
 
     try {
-      const formData = new FormData()
-      formData.append('codigo', codigo)
-      formData.append('imagen', file)
-
-      // Llamada a la API Route de subida
-      const res = await fetch('/api/admin/upload', {
-        method: 'POST',
-        body: formData,
+      // 1. Iniciar sesión con Supabase Auth (misma credencial del PWA)
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: correo.trim(),
+        password: password,
       })
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al subir la imagen')
+      if (authError) {
+        throw new Error('Credenciales inválidas. Verifica tu correo y contraseña.')
       }
 
-      setResultado(data.imagen_url)
-      setCodigo('')
-      setFile(null)
+      const userEmail = authData.user?.email
+
+      if (!userEmail) {
+        throw new Error('No se pudo verificar el usuario.')
+      }
+
+      // 2. Validar rol/puesto en la tabla "usuarios"
+      const { data: usuario, error: userError } = await supabase
+        .from('usuarios')
+        .select('correo, puesto')
+        .eq('correo', userEmail.trim())
+        .single()
+
+      if (userError || !usuario) {
+        await supabase.auth.signOut()
+        throw new Error('El usuario no se encuentra registrado en el sistema de permisos.')
+      }
+
+      // 3. Verificar que el puesto sea Administrador o IT (independiente de mayúsculas/minúsculas)
+      const puestoLimpio = usuario.puesto ? usuario.puesto.trim().toUpperCase() : ''
+      const esAutorizado = puestoLimpio === 'ADMINISTRADOR' || puestoLimpio === 'IT' || puestoLimpio === 'ADMIN'
+
+      if (!esAutorizado) {
+        // Cerrar sesión si no tiene los permisos requeridos
+        await supabase.auth.signOut()
+        throw new Error('Acceso denegado. Se requieren permisos de Administrador o IT.')
+      }
+
+      // 4. Redirigir al Dashboard de administración
+      router.push('/admin/dashboard')
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al procesar la solicitud'
+      const msg = err instanceof Error ? err.message : 'Ocurrió un error al iniciar sesión.'
       setError(msg)
     } finally {
       setCargando(false)
@@ -49,64 +72,74 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 pt-24">
-      <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-md w-full">
-        <h1 className="text-2xl font-black text-blue-900 mb-2 text-center">
-          Panel de Administración
-        </h1>
-        <p className="text-sm text-gray-600 mb-6 text-center">
-          Subida y procesamiento automático de imágenes a GitHub
-        </p>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4 pt-20">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
+        
+        {/* Encabezado del Formulario */}
+        <div className="text-center mb-8">
+          <Link href="/" className="text-xs font-bold text-orange-500 hover:text-orange-600 mb-2 inline-block">
+            &larr; Volver al sitio público
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-black text-blue-900 tracking-tight">
+            Acceso Administrativo
+          </h1>
+          <p className="text-gray-500 text-xs sm:text-sm mt-1">
+            Portal exclusivo para personal de IT y Administración.
+          </p>
+        </div>
 
-        <form onSubmit={handleUpload} className="space-y-4">
+        {/* Mensaje de Error */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-xs font-semibold text-center leading-relaxed animate-pulse">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* Formulario de Login */}
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-              Código del Producto
+            <label className="block text-xs font-extrabold text-blue-900 uppercase tracking-wider mb-2">
+              Correo Electrónico
             </label>
             <input
-              type="text"
-              value={codigo}
-              onChange={(e) => setCodigo(e.target.value)}
-              placeholder="Ej: THHW-10"
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+              type="email"
+              required
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+              placeholder="usuario@albiztegui.com"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-              Imagen del Producto
+            <label className="block text-xs font-extrabold text-blue-900 uppercase tracking-wider mb-2">
+              Contraseña
             </label>
             <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
             />
           </div>
 
           <button
             type="submit"
             disabled={cargando}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold py-3.5 rounded-xl text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-50 mt-2"
           >
-            {cargando ? 'Procesando y Subiendo...' : 'Subir Imagen a GitHub'}
+            {cargando ? 'Verificando credenciales...' : 'Iniciar Sesión'}
           </button>
         </form>
 
-        {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-medium text-center">
-            {error}
-          </div>
-        )}
+        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+          <p className="text-[11px] text-gray-400 font-medium">
+            Albiztegui Electric &copy; Sistema de Control Interno
+          </p>
+        </div>
 
-        {resultado && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-xs font-medium text-center break-all">
-            <p className="font-bold mb-1">¡Imagen subida con éxito!</p>
-            <a href={resultado} target="_blank" rel="noopener noreferrer" className="underline">
-              {resultado}
-            </a>
-          </div>
-        )}
       </div>
     </div>
   )
