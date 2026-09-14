@@ -54,7 +54,7 @@ export default function TuberiaPage() {
       const { data: prods, error } = await supabase
         .from('productos_tuberia')
         .select('*')
-        .order('descripcion', { ascending: true })
+        .order('codigo', { ascending: true })
 
       if (!active) return
 
