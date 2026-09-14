@@ -141,10 +141,12 @@ const CATEGORIAS_CATALOGO = [
 export default function Dashboard() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('cableado')
+  
+  // INICIALIZAR SIN NINGUNA PESTAÑA SELECCIONADA POR DEFECTO
+  const [activeTab, setActiveTab] = useState<string | null>(null)
 
-  // Estado para menú desplegable de Catálogo
-  const [menuCatalogoAbierto, setMenuCatalogoAbierto] = useState(true)
+  // MENÚ DESPLEGABLE DE CATÁLOGO CERRADO AL ENTRAR
+  const [menuCatalogoAbierto, setMenuCatalogoAbierto] = useState(false)
 
   // ESTADOS GENERALES
   const [imagenes, setImagenes] = useState<ImagenCarrusel[]>([])
@@ -159,9 +161,9 @@ export default function Dashboard() {
   const [subiendoMarca, setSubiendoMarca] = useState(false)
 
   // ESTADOS DINÁMICOS DEL FORMULARIO DE PRODUCTOS
-  const [estructuraActual, setEstructuraActual] = useState<Record<string, string[]>>(ESTRUCTURAS_POR_CATALOGO['cableado'])
-  const [categoriaSel, setCategoriaSel] = useState('CABLE')
-  const [subcategoriaSel, setSubcategoriaSel] = useState('Cobre')
+  const [estructuraActual, setEstructuraActual] = useState<Record<string, string[]>>({})
+  const [categoriaSel, setCategoriaSel] = useState('')
+  const [subcategoriaSel, setSubcategoriaSel] = useState('')
   
   const [codigoProd, setCodigoProd] = useState('')
   const [nombreComercialProd, setNombreComercialProd] = useState('') 
@@ -174,6 +176,13 @@ export default function Dashboard() {
   const [guardandoProducto, setGuardandoProducto] = useState(false)
   const [productosLista, setProductosLista] = useState<ProductoCatalogo[]>([])
   const [editandoId, setEditandoId] = useState<number | null>(null)
+
+  // ESTADO PARA FILTRAR LA TABLA POR SUBCATEGORÍA
+  const [filtroSubcategoriaTabla, setFiltroSubcategoriaTabla] = useState('TODAS')
+
+  // ESTADOS DE CONTROL GLOBAL DE VISIBILIDAD EN LA SECCIÓN
+  const [estadoPrecioGlobal, setEstadoPrecioGlobal] = useState(true)
+  const [estadoStockGlobal, setEstadoStockGlobal] = useState(true)
 
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'exito' })
   const [modal, setModal] = useState({ mostrar: false, id: 0, tipo: '' })
@@ -205,14 +214,23 @@ export default function Dashboard() {
 
   const cargarProductosSeccion = async (tabId: string) => {
     const tabla = obtenerNombreTabla(tabId)
-    const { data } = await supabase.from(tabla).select('*').order('id', { ascending: false })
-    if (data) setProductosLista(data)
-    else setProductosLista([])
+    const { data } = await supabase.from(tabla).select('*').order('codigo', { ascending: true })
+    if (data) {
+      setProductosLista(data)
+      // Detectar estado de visibilidad inicial basado en los primeros registros
+      if (data.length > 0) {
+        setEstadoPrecioGlobal(data.some(p => p.mostrar_precio))
+        setEstadoStockGlobal(data.some(p => p.mostrar_existencias))
+      }
+    } else {
+      setProductosLista([])
+    }
   }
 
   // Cambiar pestaña del catálogo y actualizar opciones del selector
   const cambiarPestanaCatalogo = (tabId: string) => {
     setActiveTab(tabId)
+    setFiltroSubcategoriaTabla('TODAS')
     const nuevaEstructura = ESTRUCTURAS_POR_CATALOGO[tabId] || ESTRUCTURAS_POR_CATALOGO['cableado']
     setEstructuraActual(nuevaEstructura)
     
@@ -239,7 +257,9 @@ export default function Dashboard() {
         cargarImagenes()
         cargarMensajes()
         cargarMarcas()
-        cargarProductosSeccion(activeTab)
+        if (activeTab) {
+          cargarProductosSeccion(activeTab)
+        }
       }
     }
     checkUser()
@@ -274,6 +294,7 @@ export default function Dashboard() {
   }
 
   const alternarPrecioTodos = async (estado: boolean) => {
+    if (!activeTab) return
     try {
       const tabla = obtenerNombreTabla(activeTab)
       const { error } = await supabase
@@ -283,6 +304,7 @@ export default function Dashboard() {
 
       if (error) throw error
 
+      setEstadoPrecioGlobal(estado)
       mostrarAlerta(`Precios ${estado ? 'activados' : 'ocultados'} para la sección actual.`, 'exito')
       cargarProductosSeccion(activeTab)
     } catch (err: unknown) {
@@ -292,6 +314,7 @@ export default function Dashboard() {
   }
 
   const alternarExistenciasTodos = async (estado: boolean) => {
+    if (!activeTab) return
     try {
       const tabla = obtenerNombreTabla(activeTab)
       const { error } = await supabase
@@ -301,6 +324,7 @@ export default function Dashboard() {
 
       if (error) throw error
 
+      setEstadoStockGlobal(estado)
       mostrarAlerta(`Stock ${estado ? 'activado' : 'ocultado'} para la sección actual.`, 'exito')
       cargarProductosSeccion(activeTab)
     } catch (err: unknown) {
@@ -311,6 +335,7 @@ export default function Dashboard() {
 
   const guardarProducto = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!activeTab) return
     if (!codigoProd || !nombreComercialProd) {
       mostrarAlerta('Completa el código y el nombre comercial del producto.', 'error')
       return
@@ -475,6 +500,7 @@ export default function Dashboard() {
       const { error } = await supabase.from('marcas').delete().eq('id', modal.id)
       if (!error) { cargarMarcas(); mostrarAlerta('Marca eliminada.', 'exito') }
     } else if (modal.tipo === 'producto_catalogo') {
+      if (!activeTab) return
       const tabla = obtenerNombreTabla(activeTab)
       const { error } = await supabase.from(tabla).delete().eq('id', modal.id)
       if (!error) { cargarProductosSeccion(activeTab); mostrarAlerta('Producto eliminado.', 'exito') }
@@ -482,7 +508,17 @@ export default function Dashboard() {
     setModal({ mostrar: false, id: 0, tipo: '' })
   }
 
-  const esPestanaCatalogo = CATEGORIAS_CATALOGO.some(c => c.id === activeTab)
+  const esPestanaCatalogo = activeTab ? CATEGORIAS_CATALOGO.some(c => c.id === activeTab) : false
+
+  // Extraer subcategorías únicas de la sección actual para el filtro de la tabla
+  const subcategoriasDisponibles = activeTab && ESTRUCTURAS_POR_CATALOGO[activeTab]
+    ? Array.from(new Set(Object.values(ESTRUCTURAS_POR_CATALOGO[activeTab]).flat()))
+    : []
+
+  // Productos filtrados según la subcategoría seleccionada
+  const productosMostrarTabla = filtroSubcategoriaTabla === 'TODAS'
+    ? productosLista
+    : productosLista.filter(p => (p.subcategoria || '').trim().toLowerCase() === filtroSubcategoriaTabla.trim().toLowerCase())
 
   if (loading) {
     return (
@@ -616,49 +652,71 @@ export default function Dashboard() {
       <main className="flex-grow p-4 sm:p-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-10 min-h-[500px]">
           
+          {/* VISTA EN BLANCO CUANDO NO HAY NADA SELECCIONADO */}
+          {!activeTab && (
+            <div className="h-full flex flex-col items-center justify-center py-20 text-center">
+              <div className="text-6xl mb-4 opacity-40">👈</div>
+              <h2 className="text-2xl font-black text-blue-900 mb-2">Selecciona una categoría</h2>
+              <p className="text-gray-500 text-sm max-w-sm">
+                Elige una opción del menú lateral para administrar los productos del catálogo, editar marcas o revisar tu buzón.
+              </p>
+            </div>
+          )}
+
           {/* VISTAS DE CATÁLOGO DINÁMICAS */}
           {esPestanaCatalogo && (
             <div>
-              <div className="flex flex-col lg:flex-row justify-between lg:items-center mb-6 gap-4">
-                <h1 className="text-3xl font-extrabold text-blue-900">
+              <div className="flex flex-col xl:flex-row justify-between xl:items-center mb-6 gap-4">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-blue-900 truncate">
                   Catálogo: {CATEGORIAS_CATALOGO.find(c => c.id === activeTab)?.nombre}
                 </h1>
 
-                {/* BOTONES DE CONTROL GLOBAL DE VISIBILIDAD */}
-                <div className="flex flex-wrap items-center gap-3 bg-gray-50 p-2 rounded-xl border border-gray-200">
-                  <span className="text-xs font-bold text-gray-600 px-2">Control Global:</span>
-                  <div className="flex gap-2">
+                {/* BOTONES COMPACTOS DE CONTROL GLOBAL TIPO PÍLDORA / SWITCH */}
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-100 p-2 rounded-xl border border-gray-200 self-start xl:self-auto">
+                  <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider px-1">Global:</span>
+                  
+                  {/* SWITCH PRECIOS */}
+                  <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm">
+                    <span className="text-xs font-bold text-gray-700">Precios:</span>
                     <button
                       type="button"
-                      onClick={() => alternarPrecioTodos(true)}
-                      className="px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg text-xs font-bold transition-colors"
+                      onClick={() => alternarPrecioTodos(!estadoPrecioGlobal)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                        estadoPrecioGlobal ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
+                      title={estadoPrecioGlobal ? 'Precios Visibles' : 'Precios Ocultos'}
                     >
-                      Mostrar Precios
+                      <span
+                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                          estadoPrecioGlobal ? 'translate-x-4.5' : 'translate-x-1'
+                        }`}
+                      />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => alternarPrecioTodos(false)}
-                      className="px-3 py-1.5 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      Ocultar Precios
-                    </button>
+                    <span className={`text-[10px] font-black uppercase ${estadoPrecioGlobal ? 'text-green-600' : 'text-gray-400'}`}>
+                      {estadoPrecioGlobal ? 'SÍ' : 'NO'}
+                    </span>
                   </div>
-                  <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-                  <div className="flex gap-2">
+
+                  {/* SWITCH STOCK */}
+                  <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm">
+                    <span className="text-xs font-bold text-gray-700">Stock:</span>
                     <button
                       type="button"
-                      onClick={() => alternarExistenciasTodos(true)}
-                      className="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-xs font-bold transition-colors"
+                      onClick={() => alternarExistenciasTodos(!estadoStockGlobal)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                        estadoStockGlobal ? 'bg-blue-600' : 'bg-gray-300'
+                      }`}
+                      title={estadoStockGlobal ? 'Stock Visible' : 'Stock Oculto'}
                     >
-                      Mostrar Stock
+                      <span
+                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                          estadoStockGlobal ? 'translate-x-4.5' : 'translate-x-1'
+                        }`}
+                      />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => alternarExistenciasTodos(false)}
-                      className="px-3 py-1.5 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      Ocultar Stock
-                    </button>
+                    <span className={`text-[10px] font-black uppercase ${estadoStockGlobal ? 'text-blue-600' : 'text-gray-400'}`}>
+                      {estadoStockGlobal ? 'SÍ' : 'NO'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -802,8 +860,29 @@ export default function Dashboard() {
                 </div>
               </form>
 
+              {/* BARRA DE FILTRADO DE LA TABLA POR SUBCATEGORÍA */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-100 p-4 rounded-t-xl border border-gray-200 gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold text-blue-900 uppercase tracking-wider">Filtrar Tabla:</span>
+                  <select
+                    value={filtroSubcategoriaTabla}
+                    onChange={(e) => setFiltroSubcategoriaTabla(e.target.value)}
+                    className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
+                  >
+                    <option value="TODAS">Ver Todas las Subcategorías</option>
+                    {subcategoriasDisponibles.map((sub) => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <span className="text-xs font-bold text-gray-500">
+                  Mostrando: <strong className="text-orange-600">{productosMostrarTabla.length}</strong> de {productosLista.length} productos
+                </span>
+              </div>
+
               {/* TABLA DE PRODUCTOS */}
-              <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+              <div className="overflow-x-auto rounded-b-xl border border-t-0 border-gray-200 shadow-sm">
                 <table className="w-full text-left text-sm text-gray-700">
                   <thead className="bg-blue-950 text-white text-xs uppercase">
                     <tr>
@@ -816,14 +895,14 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {productosLista.length === 0 ? (
+                    {productosMostrarTabla.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-gray-500 font-medium">
-                          No hay productos registrados en esta sección del catálogo.
+                          No hay productos registrados en esta subcategoría.
                         </td>
                       </tr>
                     ) : (
-                      productosLista.map((p) => (
+                      productosMostrarTabla.map((p) => (
                         <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                           <td className="py-3 px-4 font-bold text-blue-900 flex items-center gap-3">
                             <div className="w-10 h-10 relative bg-gray-50 border rounded-lg p-1 flex items-center justify-center overflow-hidden">
