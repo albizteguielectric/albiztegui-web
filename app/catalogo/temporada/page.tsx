@@ -1,144 +1,196 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 
-// 1. Datos para la Guía Técnica de Artículos de Temporada
-const tiposTemporada = [
-  {
-    id: 'ventilacion-verano',
-    nombre: 'Ventilación y Verano',
-    uso: 'Manejo de flujo de aire y refrescamiento ambiental para temporadas de calor.',
-    norma: 'Motores de bajo consumo energético, silenciosos y controles de velocidad integrados.',
-    medidas: [
-      { modelo: 'Ventiladores de Techo (Luz y Control)', capacidad: '36" a 56" (3, 4 y 5 aspas)', usoComun: 'Salas, comedores y recámaras' },
-      { modelo: 'Ventiladores de Piso y Pedestal', capacidad: '16" a 20" (3 velocidades)', usoComun: 'Oficinas, talleres y uso doméstico portátil' },
-      { modelo: 'Ventiladores de Torre Oscilantes', capacidad: '30" a 42" con temporizador', usoComun: 'Espacios reducidos y dormitorios' }
-    ]
-  },
-  {
-    id: 'calefaccion-invierno',
-    nombre: 'Calefacción y Invierno',
-    uso: 'Elevación de temperatura y confort térmico durante la época de frío.',
-    norma: 'Sistemas de seguridad contra sobrecalentamiento y sensores de caída automática.',
-    medidas: [
-      { modelo: 'Calentones Eléctricos Cuarzo / Cerámicos', capacidad: '800W a 1500W (110V)', usoComun: 'Habitaciones pequeñas y medianas' },
-      { modelo: 'Calefactores de Torre Oscilantes', capacidad: '1500W con termostato digital', usoComun: 'Salas y áreas de estar' },
-      { modelo: 'Calentones Radiantes de Pared / Baño', capacidad: '600W a 1200W con estanqueidad', usoComun: 'Baños y pasillos' }
-    ]
-  },
-  {
-    id: 'navidad-festiva',
-    nombre: 'Iluminación Navideña y Festiva',
-    uso: 'Decoración luminosa interior y exterior para fin de año y eventos especiales.',
-    norma: 'Tecnología LED de alta durabilidad, bajo calentamiento y conectores en serie aislados.',
-    medidas: [
-      { modelo: 'Series y Luces LED (Blanca / Cálida / Multicolor)', capacidad: '100 a 500 focos LED (10m a 50m)', usoComun: 'Árboles de navidad, fachadas y marcos' },
-      { modelo: 'Mangueras Neón Flex y Luces de Cortina', capacidad: '10m a 25m (Protección IP65 exterior)', usoComun: 'Techos, balcones y contornos arquitectónicos' },
-      { modelo: 'Proyectores y Estacas Solares / LED', capacidad: 'Efectos de figuras / Múltiples ritmos', usoComun: 'Jardines y muros exteriores' }
-    ]
-  },
-  {
-    id: 'lamparas-colgantes',
-    nombre: 'Lámparas Colgantes y Decorativas',
-    uso: 'Iluminación de acentuación, diseño de interiores y ambientación estilizada.',
-    norma: 'Sockets estándar E26/E27 para focos Vintage Filamento o LED decorativo.',
-    medidas: [
-      { modelo: 'Lámparas Colgantes Industriales / Vintage', capacidad: '1 a 3 Caídas (Metal / Cable Tejido)', usoComun: 'Barras de cocina, comedores y restaurantes' },
-      { modelo: 'Candelabros y Luminarias Modernas', capacidad: 'Diseños de Aro / Cristales LED', usoComun: 'Entradas principales y salas dobles alturas' },
-      { modelo: 'Arbotantes Decorativos de Suspensión', capacidad: 'Bases dirigibles e interconectables', usoComun: 'Recámaras y muros de acento' }
-    ]
-  }
-]
-
-// 2. Sub-Pestañas de Categorías
+// Sub-Pestañas de Filtrado para Artículos de Temporada
 const categoriasTemporada = [
-  { id: 'ventilacion', nombre: 'Ventiladores de Techo y Piso' },
-  { id: 'calefaccion', nombre: 'Calentones Eléctricos' },
-  { id: 'luces-navidad', nombre: 'Luces Navideñas y Festivas' },
-  { id: 'colgantes-techos', nombre: 'Lámparas Colgantes' }
+  { id: 'Todas', nombre: 'Todas' },
+  { id: 'VENTILACION', nombre: 'Ventiladores de Techo y Piso' },
+  { id: 'CALEFACCION', nombre: 'Calentones Eléctricos' },
+  { id: 'LUCES NAVIDEÑAS', nombre: 'Luces Navideñas y Festivas' },
+  { id: 'LAMPARAS COLGANTES', nombre: 'Lámparas Colgantes' }
 ]
 
-// 3. Tarjetas Interactivas de Productos
-const accesorios = [
-  // --- CATEGORÍA 1: VENTILACIÓN ---
-  {
-    id: 1,
-    categoriaId: 'ventilacion',
-    nombre: 'Ventiladores de Techo con Luz y Control Remoto',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/ventilador-techo.jpg',
-    descripcion: 'Ventiladores estéticos de techo con kit de iluminación LED integrado, múltiples velocidades y cambio de giro verano/invierno.',
-    medidas: 'Diámetros de 42", 48" y 52" (3 y 5 aspas)',
-    material: 'Motor de Cobre Silencioso / Aspas de Madera o ABS'
-  },
-  {
-    id: 2,
-    categoriaId: 'ventilacion',
-    nombre: 'Ventiladores de Piso, Pedestal y Torre',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/ventilador-piso.jpg',
-    descripcion: 'Unidades de ventilación portátiles de alta velocidad con oscilación amplia y rejillas de seguridad.',
-    medidas: 'Pedestal 18" a 20" | Torre 36" y 42"',
-    material: 'Estructura Metálica y Plástico Reforzado'
-  },
+interface ProductoTemporada {
+  id: number
+  codigo: string
+  descripcion: string
+  categoria: string
+  subcategoria: string
+  imagen_url: string
+  mostrar_precio: boolean
+  mostrar_existencias: boolean
+  unidad_medida?: string
+}
 
-  // --- CATEGORÍA 2: CALEFACCIÓN ---
-  {
-    id: 3,
-    categoriaId: 'calefaccion',
-    nombre: 'Calentones Eléctricos Cerámicos y de Cuarzo',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/calenton.jpg',
-    descripcion: 'Calefactores de ambiente de encendido instantáneo con termostato regulable y selector de potencia.',
-    medidas: '800W, 1200W y 1500W (120V~)',
-    material: 'Gabinete con Protección Anti-Vuelco'
-  },
-
-  // --- CATEGORÍA 3: LUCES NAVIDEÑAS ---
-  {
-    id: 4,
-    categoriaId: 'luces-navidad',
-    nombre: 'Series y Luces LED Navideñas (Interior / Exterior)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/series-navideñas.jpg',
-    descripcion: 'Guirnaldas de luces festivas de bajo consumo energético, alta intensidad luminosa y controlador de secuencias integradas.',
-    medidas: '100, 200, 300 y 500 Luces LED (Luz Cálida, Blanca y Multicolor)',
-    material: 'Cable Transparente / Verde Aislado IP44'
-  },
-  {
-    id: 5,
-    categoriaId: 'luces-navidad',
-    nombre: 'Mangueras Neón Flex y Cortinas de Luz',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/manguera-cortina.jpg',
-    descripcion: 'Mangueras flexibles de iluminación uniforme para contornos y cortinas luminosas para fachadas y eventos.',
-    medidas: 'Mangueras 10m y 25m | Cortinas 3x3m',
-    material: 'Silicona Flexible Estanca (IP65 Exterior)'
-  },
-
-  // --- CATEGORÍA 4: LÁMPARAS COLGANTES ---
-  {
-    id: 6,
-    categoriaId: 'colgantes-techos',
-    nombre: 'Lámparas Colgantes Industriales y Vintage',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/lampara.jpg',
-    descripcion: 'Luminarias de suspensión decorativa para techos con acabado en negro mate, latón y combinaciones de metal y cristal.',
-    medidas: 'Modelos de 1, 2 y 3 Caídas (Socket E26)',
-    material: 'Aluminio Fundido / Cristal Templado / Cable Tejido'
-  }
-]
+interface DatosInventario {
+  codigo: string
+  descripcion: string 
+  precio: number
+  existencias: number
+}
 
 export default function TemporadaPage() {
-  const [tipoActivo, setTipoActivo] = useState(tiposTemporada[0].id)
-  const [catAccesorioActiva, setCatAccesorioActiva] = useState(categoriasTemporada[0].id)
+  const [catAccesorioActiva, setCatAccesorioActiva] = useState('Todas')
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>({})
+  
+  // Estado para controlar la imagen abierta en el Pop-up / Modal
+  const [imagenModal, setImagenModal] = useState<{ url: string; codigo: string } | null>(null)
+
+  // Estados dinámicos de Supabase
+  const [productos, setProductos] = useState<ProductoTemporada[]>([])
+  const [datosInventario, setDatosInventario] = useState<Record<string, DatosInventario>>({})
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    const fetchProductos = async () => {
+      // 1. Cargar catálogo de productos_temporada ordenados alfabéticamente por descripción
+      const { data: prods, error } = await supabase
+        .from('productos_temporada')
+        .select('*')
+        .order('descripcion', { ascending: true })
+
+      if (!active) return
+
+      if (error) {
+        console.error('Error al cargar productos_temporada:', error.message || error)
+        setCargando(false)
+        return
+      }
+
+      if (prods && prods.length > 0) {
+        setProductos(prods)
+
+        // 2. Extraer códigos limpios en mayúsculas
+        const codigosLimpios = Array.from(
+          new Set(
+            prods
+              .map(p => (p.codigo ? p.codigo.trim().toUpperCase() : ''))
+              .filter(c => c.length > 0)
+          )
+        )
+
+        // 3. Consultar la tabla "productos" para sincronizar precios y stock
+        if (codigosLimpios.length > 0) {
+          const { data: invData, error: invError } = await supabase
+            .from('productos')
+            .select('codigo, descripcion, precio, existencias')
+            .in('codigo', codigosLimpios)
+
+          if (invError) {
+            console.error('Error al consultar tabla productos:', invError.message || invError)
+          }
+
+          if (active && invData) {
+            const mapInv: Record<string, DatosInventario> = {}
+            invData.forEach(item => {
+              if (item.codigo) {
+                mapInv[item.codigo.trim().toUpperCase()] = {
+                  codigo: item.codigo.trim().toUpperCase(),
+                  descripcion: item.descripcion || '',
+                  precio: Number(item.precio) || 0,
+                  existencias: Number(item.existencias) || 0
+                }
+              }
+            })
+            setDatosInventario(mapInv)
+          }
+        }
+      }
+
+      if (active) {
+        setCargando(false)
+      }
+    }
+
+    fetchProductos()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const toggleFlip = (id: number) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const tipoSeleccionado = tiposTemporada.find(t => t.id === tipoActivo) || tiposTemporada[0]
-  const accesoriosFiltrados = accesorios.filter(a => a.categoriaId === catAccesorioActiva)
+  const abrirImagenModal = (e: React.MouseEvent, url: string, codigo: string) => {
+    // Evita que la tarjeta gire al hacer clic sobre la imagen
+    e.stopPropagation()
+    setImagenModal({ url, codigo })
+  }
+
+  // Función para formatear las existencias según la unidad de medida
+  const formatearExistencias = (existencias: number, unidad?: string) => {
+    if (existencias <= 0) return 'Agotado'
+
+    const u = (unidad || 'pieza').toLowerCase()
+    let etiqueta = 'pza(s)'
+
+    if (u === 'metro' || u === 'm') etiqueta = 'm'
+    else if (u === 'kilogramo' || u === 'kg') etiqueta = 'kg'
+    else if (u === 'rollo') etiqueta = 'rollo(s)'
+    else if (u === 'caja') etiqueta = 'caja(s)'
+
+    return `${existencias} ${etiqueta}`
+  }
+
+  const productosFiltrados = catAccesorioActiva === 'Todas'
+    ? productos
+    : productos.filter(p => p.categoria === catAccesorioActiva || p.subcategoria === catAccesorioActiva)
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 pt-20">
+      
+      {/* MODAL POP-UP DE IMAGEN COMPLETA */}
+      {imagenModal && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+          onClick={() => setImagenModal(null)}
+        >
+          <div 
+            className="relative bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl overflow-hidden flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* BOTÓN DE CIERRE (X) */}
+            <button
+              type="button"
+              onClick={() => setImagenModal(null)}
+              className="absolute top-4 right-4 bg-gray-100 hover:bg-orange-500 hover:text-white text-gray-700 w-10 h-10 rounded-full flex items-center justify-center font-black text-lg transition-colors shadow-md z-10"
+              title="Cerrar vista previa"
+            >
+              ✕
+            </button>
+
+            {/* ENCABEZADO DEL MODAL */}
+            <div className="w-full text-left border-b border-gray-100 pb-3 mb-4 pr-12">
+              <span className="text-xs font-black text-orange-500 uppercase tracking-wider block">Vista de Producto</span>
+              <h3 className="text-lg font-extrabold text-blue-900">Código: {imagenModal.codigo}</h3>
+            </div>
+
+            {/* CONTENEDOR DE LA IMAGEN AMPLIADA */}
+            <div className="relative w-full h-[60vh] sm:h-[70vh] bg-gray-50 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center">
+              <Image
+                src={imagenModal.url}
+                alt={imagenModal.codigo}
+                fill={true}
+                className="object-contain p-4"
+                unoptimized={true}
+              />
+            </div>
+            
+            <p className="text-xs text-gray-400 mt-3 font-medium">
+              Haz clic fuera o presiona la X para cerrar
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         
         {/* ENCABEZADO */}
@@ -193,69 +245,7 @@ export default function TemporadaPage() {
           </div>
         </div>
 
-        {/* TABLA GUÍA TÉCNICA */}
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-10 mb-16">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-              Guía de Productos de Temporada
-            </h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Consulta las especificaciones de cada línea según la época del año.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
-            {tiposTemporada.map((tipo) => (
-              <button
-                key={tipo.id}
-                onClick={() => setTipoActivo(tipo.id)}
-                className={`px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm ${
-                  tipoActivo === tipo.id 
-                    ? 'bg-blue-900 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {tipo.nombre}
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs font-bold text-orange-500 uppercase tracking-wider block mb-1">Aplicación Principal</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.uso}</p>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-blue-900 uppercase tracking-wider block mb-1">Características de Seguridad</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.norma}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-blue-950 text-white text-xs uppercase">
-                <tr>
-                  <th className="py-3.5 px-4 font-extrabold">Producto / Modelo</th>
-                  <th className="py-3.5 px-4 font-extrabold">Capacidades / Formatos</th>
-                  <th className="py-3.5 px-4 font-extrabold">Uso Recomendado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {tipoSeleccionado.medidas.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-blue-900">{item.modelo}</td>
-                    <td className="py-3.5 px-4 font-bold text-orange-600">{item.capacidad}</td>
-                    <td className="py-3.5 px-4 text-gray-800">{item.usoComun}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* TARJETAS INTERACTIVAS */}
+        {/* TARJETAS INTERACTIVAS COMPACTAS (CATÁLOGO DIRECTO) */}
         <div className="mb-16">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -265,10 +255,11 @@ export default function TemporadaPage() {
               Modelos y Opciones Disponibles
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              Haz clic sobre la tarjeta para consultar características, acabados y potencias.
+              Haz clic en la imagen para verla en pantalla completa, o en el texto para girar la tarjeta.
             </p>
           </div>
 
+          {/* FILTRO DE CATEGORÍAS */}
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
             {categoriasTemporada.map((cat) => (
               <button
@@ -285,66 +276,126 @@ export default function TemporadaPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {accesoriosFiltrados.map((item) => {
-              const isFlipped = flippedCards[item.id] || false;
-              return (
-                <div 
-                  key={item.id}
-                  onClick={() => toggleFlip(item.id)}
-                  className="h-[420px] w-full cursor-pointer [perspective:1000px] group"
-                >
-                  <div className={`relative h-full w-full rounded-2xl shadow-md transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                    
-                    {/* FRENTE OPTIMIZADO PARA IMÁGENES 1024x1024 */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-white p-4 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
-                      <div className="w-full aspect-square bg-gray-50 rounded-xl relative overflow-hidden border border-gray-100 flex items-center justify-center p-2">
-                        <Image 
-                          src={item.imagen} 
-                          alt={item.nombre} 
-                          fill={true} 
-                          className="object-contain p-1" 
-                          unoptimized={true}
-                        />
-                      </div>
-                      <div className="text-center my-auto px-1">
-                        <h3 className="text-base font-extrabold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2">
-                          {item.nombre}
-                        </h3>
-                        <p className="text-[11px] text-gray-500 mt-1">Haz clic para ver ficha 🔄</p>
-                      </div>
-                    </div>
+          {/* ESTADO CARGANDO / SIN PRODUCTOS */}
+          {cargando ? (
+            <div className="text-center py-16">
+              <p className="text-lg font-bold text-blue-900 animate-pulse">Cargando productos de temporada...</p>
+            </div>
+          ) : productosFiltrados.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200">
+              <p className="text-gray-500 font-semibold">No hay productos registrados en esta categoría aún.</p>
+            </div>
+          ) : (
+            /* RETÍCULA DE TARJETAS COMPACTAS */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+              {productosFiltrados.map((item) => {
+                const isFlipped = flippedCards[item.id] || false;
+                const codigoClave = item.codigo ? item.codigo.trim().toUpperCase() : '';
+                
+                // Mapeo con fallback hacia la descripción propia del producto
+                const invData = datosInventario[codigoClave];
+                const descripcionReverso = (invData && invData.descripcion && invData.descripcion.trim() !== '')
+                  ? invData.descripcion
+                  : item.descripcion;
 
-                    {/* REVERSO */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-blue-950 p-6 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
-                      <div>
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Ficha Técnica</span>
-                          <span className="text-xs text-gray-400">🔄 Volver</span>
+                const precioFinal = invData ? invData.precio : 0;
+                const existenciasFinales = invData ? invData.existencias : 0;
+
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => toggleFlip(item.id)}
+                    className="h-56 w-full cursor-pointer [perspective:1000px] group"
+                  >
+                    <div className={`relative h-full w-full rounded-xl shadow-sm transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+                      
+                      {/* FRENTE DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
+                        
+                        {/* CONTENEDOR DE IMAGEN (ABRE EL POP-UP AL DAR CLIC) */}
+                        <div 
+                          onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
+                          className="w-full h-24 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors"
+                          title="Haz clic para ampliar imagen"
+                        >
+                          <Image 
+                            src={item.imagen_url} 
+                            alt={item.codigo} 
+                            fill={true} 
+                            className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
+                            unoptimized={true}
+                          />
+                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
+                            🔍 Ampliar
+                          </span>
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">{item.nombre}</h3>
-                        <p className="text-xs text-gray-300 mb-4 leading-relaxed">
-                          {item.descripcion}
-                        </p>
+
+                        {/* TEXTO DE LA TARJETA (HACER CLIC AQUÍ GIRA LA TARJETA) */}
+                        <div className="text-center w-full mt-1">
+                          <span className="text-[9px] font-black text-orange-500 uppercase tracking-wider block truncate">
+                            CÓD: {item.codigo}
+                          </span>
+                          <h3 className="text-xs font-bold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-0.5 leading-tight" title={item.descripcion}>
+                            {item.descripcion}
+                          </h3>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Girar Ficha 🔄</p>
+                        </div>
                       </div>
 
-                      <div className="border-t border-blue-900 pt-3 space-y-2">
+                      {/* REVERSO DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
                         <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Capacidades / Medidas:</span>
-                          <span className="text-xs font-bold text-orange-400">{item.medidas}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Materiales / Especificación:</span>
-                          <span className="text-xs font-bold text-gray-200">{item.material}</span>
-                        </div>
-                      </div>
-                    </div>
+                          <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
+                            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
+                              CÓD: {item.codigo}
+                            </span>
+                            <span className="text-[9px] text-gray-400">🔄</span>
+                          </div>
+                          
+                          <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
+                            {descripcionReverso}
+                          </p>
 
+                          {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
+                          <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
+                            {item.mostrar_precio && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
+                                <span className="text-xs font-black text-orange-400">
+                                  ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
+                                </span>
+                              </div>
+                            )}
+
+                            {item.mostrar_existencias && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
+                                <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {formatearExistencias(existenciasFinales, item.unidad_medida)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* BOTÓN WHATSAPP COMPACTO */}
+                        <a
+                          href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
+                        >
+                          Cotizar WhatsApp
+                        </a>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* COTIZADOR */}

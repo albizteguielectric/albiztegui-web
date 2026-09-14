@@ -1,199 +1,197 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 
-// 1. Datos para la Guía Técnica de Iluminación
-const tiposIluminacion = [
-  {
-    id: 'focos-led-std',
-    nombre: 'Focos LED y Específicos',
-    uso: 'Reemplazo directo de focos incandescencias en sockets tradicionales E26/E27 para ahorro energético.',
-    norma: 'Tecnología LED Omnidireccional, alta eficiencia lumínica y temperatura ajustable (Cálida 3000K / Fría 6500K).',
-    medidas: [
-      { modelo: 'Focos LED Estándar (1W a 100W)', temperatura: 'Luz Cálida (3000K) / Luz Fría (6500K)', usoComun: 'Iluminación general en habitaciones y oficinas' },
-      { modelo: 'Focos Decorativos / Vintage / Vela', temperatura: 'Cálida Ámbar / Filamento LED', usoComun: 'Lámparas decorativas, candiles y restaurantes' },
-      { modelo: 'Focos Específicos (Refrigerador / Colores)', temperatura: 'Incandescente / Colores 40W', usoComun: 'Electrodomésticos y decoración festiva' }
-    ]
-  },
-  {
-    id: 'spots-empotrables',
-    nombre: 'Spots y Iluminación Acentuada',
-    uso: 'Embebidos o sobrepuestos en plafón, falso techo o losa para dirección de luz puntual o ambiental.',
-    norma: 'Driver integrado de alto factor de potencia y compatibilidad con atenuadores (Dimeables).',
-    medidas: [
-      { modelo: 'Spots Empotrables (3W a 24W)', temperatura: 'Redondos / Cuadrados', usoComun: 'Plafón de tablaroca en pasillos y salas' },
-      { modelo: 'Spots de Sobreponer (3W a 24W)', temperatura: 'Redondos / Cuadrados', usoComun: 'Losa directa sin necesidad de perforar' },
-      { modelo: 'Bases y Canopeas para MR16 / GU10', temperatura: 'Dimeables / Sockets dirigibles', usoComun: 'Acentuación en cuadros, nichos y aparadores' }
-    ]
-  },
-  {
-    id: 'reflectores-exterior',
-    nombre: 'Reflectores y Alumbrado Solar',
-    uso: 'Iluminación de grandes áreas, fachadas, patios, banquetas y vialidades.',
-    norma: 'Protección IP65/IP66 contra lluvia, sensores de movimiento fotosensibles e iluminación solar autónoma.',
-    medidas: [
-      { modelo: 'Reflectores LED (10W a 500W)', temperatura: 'Luz Blanca de Alto Flujo', usoComun: 'Jardines, fachadas, estadios y bodegas' },
-      { modelo: 'Luminarias Suburbana y Pública', temperatura: 'Eléctrica / Panel Solar', usoComun: 'Alumbrado exterior y banquetas' },
-      { modelo: 'Arbotantes Solares Decorativos', temperatura: 'Luz Cálida / RGB con Sensor', usoComun: 'Muros exteriores sin cableado eléctrico' }
-    ]
-  }
-]
-
-// 2. Sub-Pestañas de Categorías
+// Sub-Pestañas de Filtrado para Iluminación
 const categoriasIluminacion = [
-  { id: 'focos-varios', nombre: 'Focos LED y Especiales' },
-  { id: 'spots-bases', nombre: 'Spots y Dirigibles' },
-  { id: 'plafones-sobreponer', nombre: 'Plafones y Lámparas' },
-  { id: 'arbotantes-muro', nombre: 'Arbotantes de Pared' },
-  { id: 'reflectores-solares', nombre: 'Reflectores y Solar' }
+  { id: 'Todas', nombre: 'Todas' },
+  { id: 'FOCOS', nombre: 'Focos LED y Especiales' },
+  { id: 'SPOT', nombre: 'Spots y Dirigibles' },
+  { id: 'PLAFONES Y LAMPARAS', nombre: 'Plafones y Lámparas' },
+  { id: 'ARBOTANTES', nombre: 'Arbotantes de Pared' },
+  { id: 'LAMPARAS EXTERIORES', nombre: 'Reflectores y Exteriores' }
 ]
 
-// 3. Tarjetas Interactivas de Productos
-const accesorios = [
-  // --- CATEGORÍA 1: FOCOS ---
-  {
-    id: 1,
-    categoriaId: 'focos-varios',
-    nombre: 'Focos LED Omnidireccionales (1W a 100W)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/focos.jpg',
-    descripcion: 'Focos de alta eficiencia LED con socket estándar E26. Disponibles en potencias desde focos luz de noche (1W) hasta alta potencia (100W).',
-    medidas: '1W, 5W, 9W, 12W, 15W, 20W, 50W, 100W (E26)',
-    material: 'Luz Cálida (3000K) y Luz Fría (6500K)'
-  },
-  {
-    id: 2,
-    categoriaId: 'focos-varios',
-    nombre: 'Focos Vintage / Filamento y Vela',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/bintage.jpg',
-    descripcion: 'Focos estéticos estilo Edison con filamento LED visible y tipo vela para candiles, arbotantes y ambientes cálidos.',
-    medidas: 'Entradas E26 y E12 (Tipo Globo, Pera, Vela)',
-    material: 'Luz Cálida Ámbar (2200K - 2700K)'
-  },
-  {
-    id: 3,
-    categoriaId: 'focos-varios',
-    nombre: 'Focos Especiales (Refrigerador / Colores 40W)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/focos-colores.jpg',
-    descripcion: 'Focos incandescendentes compactos para altas/bajas temperaturas (refrigeradores) y focos decorativos de colores (Rojo, Azul, Verde, Amarillo).',
-    medidas: 'Rosca E26 y E12 / 15W a 40W Incandescente',
-    material: 'Vidrio Reforzado / Colores Puros'
-  },
+interface ProductoIluminacion {
+  id: number
+  codigo: string
+  descripcion: string
+  categoria: string
+  subcategoria: string
+  imagen_url: string
+  mostrar_precio: boolean
+  mostrar_existencias: boolean
+  unidad_medida?: string
+}
 
-  // --- CATEGORÍA 2: SPOTS ---
-  {
-    id: 4,
-    categoriaId: 'spots-bases',
-    nombre: 'Spots Empotrables (Redondos / Cuadrados)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/spot.jpg',
-    descripcion: 'Luminarias ultrafinas para perforación en falso bote o tablaroca con pestañas de sujeción a presión.',
-    medidas: '3W, 6W, 9W, 12W, 18W y 24W (Redondo / Cuadrado)',
-    material: 'Luz Fría, Cálida y Modelos Dimeables'
-  },
-  {
-    id: 5,
-    categoriaId: 'spots-bases',
-    nombre: 'Spots de Sobreponer (Redondos / Cuadrados)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/sobreponer.jpg',
-    descripcion: 'Spot LED con base metálica para fijar directamente a la losa o muro sin necesidad de perforación.',
-    medidas: '6W, 12W, 18W y 24W (Redondo / Cuadrado)',
-    material: 'Chasis de Aluminio Blanco y Negro'
-  },
-  {
-    id: 6,
-    categoriaId: 'spots-bases',
-    nombre: 'Bases y Sockets para MR16 / GUI10',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/mr16-gui10.jpg',
-    descripcion: 'Luminarias dirigibles (Escarabajos/Canopeas) y sockets para focos dicroicos MR16 y GUI10 acentuados.',
-    medidas: 'Sencillo, Doble y Triple dirigible',
-    material: 'Soporte Metálico / Base Cerámica'
-  },
-
-  // --- CATEGORÍA 3: PLAFONES Y LÁMPARAS ---
-  {
-    id: 7,
-    categoriaId: 'plafones-sobreponer',
-    nombre: 'Plafones LED de Sobreponer (12W a 32W)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/plafones.jpg',
-    descripcion: 'Lámparas de techo decorativas de gran difusor de luz uniforme, ideales para iluminación central en cocinas, salas y recámaras.',
-    medidas: '12W, 18W, 24W y 32W (Diseños Modernos)',
-    material: 'Acrílico Translucido / Marco de Aluminio'
-  },
-  {
-    id: 8,
-    categoriaId: 'plafones-sobreponer',
-    nombre: 'Lámparas Lineales y Gabinetes LED',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/lamparas-lineales.png',
-    descripcion: 'Luminarias alargadas tipo regleta o gabinete estanco para pasillos, comercios, talleres y cocheras.',
-    medidas: 'Slim 18W, 36W y 72W (60cm y 120cm)',
-    material: 'Luz Blanca Brillante (6500K)'
-  },
-
-  // --- CATEGORÍA 4: ARBOTANTES DE MURO ---
-  {
-    id: 9,
-    categoriaId: 'arbotantes-muro',
-    nombre: 'Arbotantes Muro Interior / Exterior',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/arbotante1.jpg',
-    descripcion: 'Luminarias de pared decorativas con emisión de luz bidireccional (Up & Down), ideales para fachadas, pasillos y jardines.',
-    medidas: 'Modelos con LED Integrado (6W - 12W) o Socket GUI10',
-    material: 'Aluminio Estanco / Vidrio Templado (IP65)'
-  },
-  {
-    id: 10,
-    categoriaId: 'arbotantes-muro',
-    nombre: 'Lámparas de Muro Residenciales',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/arbotante2.jpg',
-    descripcion: 'Faroles decorativos y apliques de pared contemporáneos para iluminar accesos, terrazas y cabeceras.',
-    medidas: 'Entradas E26 para foco LED intercambiable',
-    material: 'Acero Inoxidable / Hierro / Policarbonato'
-  },
-
-  // --- CATEGORÍA 5: REFLECTORES Y SOLAR ---
-  {
-    id: 11,
-    categoriaId: 'reflectores-solares',
-    nombre: 'Reflectores LED de Alta Potencia',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/reflectores.jpg',
-    descripcion: 'Reflectores extra planos de luz blanca intensa para exterior con carcasa de disipación de calor.',
-    medidas: '10W, 30W, 50W, 100W, 200W, 300W y 500W',
-    material: 'Cuerpo de Aluminio Fundido / IP66'
-  },
-  {
-    id: 12,
-    categoriaId: 'reflectores-solares',
-    nombre: 'Luminarias Suburbana Eléctrica y Solar',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/suburbanas.jpg',
-    descripcion: 'Lámparas tipo alumbrado público. Opción eléctrica directa y opción solar autónoma con panel, batería y fotocelda integrada.',
-    medidas: '100W, 200W, 300W, 600W (Incluyen brazo de montaje)',
-    material: 'Sensor de Movimiento / Control Remoto'
-  },
-  {
-    id: 13,
-    categoriaId: 'reflectores-solares',
-    nombre: 'Arbotantes y Estacas Solares Decorativas',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/solares.jpg',
-    descripcion: 'Luces solares decorativas para jardines, muros exteriores y senderos que cargan de día y encienden automáticamente de noche.',
-    medidas: 'Estacas de piso y Arbotantes de pared sin cables',
-    material: 'Luz Cálida y Luz RGB Multicolor (IP65)'
-  }
-]
+interface DatosInventario {
+  codigo: string
+  descripcion: string 
+  precio: number
+  existencias: number
+}
 
 export default function IluminacionPage() {
-  const [tipoActivo, setTipoActivo] = useState(tiposIluminacion[0].id)
-  const [catAccesorioActiva, setCatAccesorioActiva] = useState(categoriasIluminacion[0].id)
+  const [catAccesorioActiva, setCatAccesorioActiva] = useState('Todas')
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>({})
+  
+  // Estado para controlar la imagen abierta en el Pop-up / Modal
+  const [imagenModal, setImagenModal] = useState<{ url: string; codigo: string } | null>(null)
+
+  // Estados dinámicos de Supabase
+  const [productos, setProductos] = useState<ProductoIluminacion[]>([])
+  const [datosInventario, setDatosInventario] = useState<Record<string, DatosInventario>>({})
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    const fetchProductos = async () => {
+      // 1. Cargar catálogo de productos_iluminacion ordenados alfabéticamente por descripción
+      const { data: prods, error } = await supabase
+        .from('productos_iluminacion')
+        .select('*')
+        .order('descripcion', { ascending: true })
+
+      if (!active) return
+
+      if (error) {
+        console.error('Error al cargar productos_iluminacion:', error.message || error)
+        setCargando(false)
+        return
+      }
+
+      if (prods && prods.length > 0) {
+        setProductos(prods)
+
+        // 2. Extraer códigos limpios en mayúsculas
+        const codigosLimpios = Array.from(
+          new Set(
+            prods
+              .map(p => (p.codigo ? p.codigo.trim().toUpperCase() : ''))
+              .filter(c => c.length > 0)
+          )
+        )
+
+        // 3. Consultar la tabla "productos" para sincronizar precios y stock
+        if (codigosLimpios.length > 0) {
+          const { data: invData, error: invError } = await supabase
+            .from('productos')
+            .select('codigo, descripcion, precio, existencias')
+            .in('codigo', codigosLimpios)
+
+          if (invError) {
+            console.error('Error al consultar tabla productos:', invError.message || invError)
+          }
+
+          if (active && invData) {
+            const mapInv: Record<string, DatosInventario> = {}
+            invData.forEach(item => {
+              if (item.codigo) {
+                mapInv[item.codigo.trim().toUpperCase()] = {
+                  codigo: item.codigo.trim().toUpperCase(),
+                  descripcion: item.descripcion || '',
+                  precio: Number(item.precio) || 0,
+                  existencias: Number(item.existencias) || 0
+                }
+              }
+            })
+            setDatosInventario(mapInv)
+          }
+        }
+      }
+
+      if (active) {
+        setCargando(false)
+      }
+    }
+
+    fetchProductos()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const toggleFlip = (id: number) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const tipoSeleccionado = tiposIluminacion.find(t => t.id === tipoActivo) || tiposIluminacion[0]
-  const accesoriosFiltrados = accesorios.filter(a => a.categoriaId === catAccesorioActiva)
+  const abrirImagenModal = (e: React.MouseEvent, url: string, codigo: string) => {
+    // Evita que la tarjeta gire al hacer clic sobre la imagen
+    e.stopPropagation()
+    setImagenModal({ url, codigo })
+  }
+
+  // Función para formatear las existencias según la unidad de medida
+  const formatearExistencias = (existencias: number, unidad?: string) => {
+    if (existencias <= 0) return 'Agotado'
+
+    const u = (unidad || 'pieza').toLowerCase()
+    let etiqueta = 'pza(s)'
+
+    if (u === 'metro' || u === 'm') etiqueta = 'm'
+    else if (u === 'kilogramo' || u === 'kg') etiqueta = 'kg'
+    else if (u === 'rollo') etiqueta = 'rollo(s)'
+    else if (u === 'caja') etiqueta = 'caja(s)'
+
+    return `${existencias} ${etiqueta}`
+  }
+
+  const productosFiltrados = catAccesorioActiva === 'Todas'
+    ? productos
+    : productos.filter(p => p.categoria === catAccesorioActiva || p.subcategoria === catAccesorioActiva)
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 pt-20">
+      
+      {/* MODAL POP-UP DE IMAGEN COMPLETA */}
+      {imagenModal && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+          onClick={() => setImagenModal(null)}
+        >
+          <div 
+            className="relative bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl overflow-hidden flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* BOTÓN DE CIERRE (X) */}
+            <button
+              type="button"
+              onClick={() => setImagenModal(null)}
+              className="absolute top-4 right-4 bg-gray-100 hover:bg-orange-500 hover:text-white text-gray-700 w-10 h-10 rounded-full flex items-center justify-center font-black text-lg transition-colors shadow-md z-10"
+              title="Cerrar vista previa"
+            >
+              ✕
+            </button>
+
+            {/* ENCABEZADO DEL MODAL */}
+            <div className="w-full text-left border-b border-gray-100 pb-3 mb-4 pr-12">
+              <span className="text-xs font-black text-orange-500 uppercase tracking-wider block">Vista de Producto</span>
+              <h3 className="text-lg font-extrabold text-blue-900">Código: {imagenModal.codigo}</h3>
+            </div>
+
+            {/* CONTENEDOR DE LA IMAGEN AMPLIADA */}
+            <div className="relative w-full h-[60vh] sm:h-[70vh] bg-gray-50 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center">
+              <Image
+                src={imagenModal.url}
+                alt={imagenModal.codigo}
+                fill={true}
+                className="object-contain p-4"
+                unoptimized={true}
+              />
+            </div>
+            
+            <p className="text-xs text-gray-400 mt-3 font-medium">
+              Haz clic fuera o presiona la X para cerrar
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         
         {/* ENCABEZADO */}
@@ -248,69 +246,7 @@ export default function IluminacionPage() {
           </div>
         </div>
 
-        {/* TABLA GUÍA TÉCNICA */}
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-10 mb-16">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-              Guía de Selección de Iluminación
-            </h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Consulta las características de luz y aplicaciones recomendadas.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
-            {tiposIluminacion.map((tipo) => (
-              <button
-                key={tipo.id}
-                onClick={() => setTipoActivo(tipo.id)}
-                className={`px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm ${
-                  tipoActivo === tipo.id 
-                    ? 'bg-blue-900 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {tipo.nombre}
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs font-bold text-orange-500 uppercase tracking-wider block mb-1">Uso Recomendado</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.uso}</p>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-blue-900 uppercase tracking-wider block mb-1">Norma y Especificación</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.norma}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-blue-950 text-white text-xs uppercase">
-                <tr>
-                  <th className="py-3.5 px-4 font-extrabold">Modelo / Tipo</th>
-                  <th className="py-3.5 px-4 font-extrabold">Tono de Luz / Características</th>
-                  <th className="py-3.5 px-4 font-extrabold">Aplicación Típica</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {tipoSeleccionado.medidas.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-blue-900">{item.modelo}</td>
-                    <td className="py-3.5 px-4 font-bold text-orange-600">{item.temperatura}</td>
-                    <td className="py-3.5 px-4 text-gray-800">{item.usoComun}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* TARJETAS INTERACTIVAS CON FORMATO PROPORCIONAL Y MAYOR ÁREA PARA IMAGEN */}
+        {/* TARJETAS INTERACTIVAS COMPACTAS (CATÁLOGO DIRECTO) */}
         <div className="mb-16">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -320,10 +256,11 @@ export default function IluminacionPage() {
               Modelos y Accesorios Luminosos
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              Haz clic sobre la tarjeta para consultar potencias, entradas y especificaciones de luz.
+              Haz clic en la imagen para verla en pantalla completa, o en el texto para girar la tarjeta.
             </p>
           </div>
 
+          {/* FILTRO DE CATEGORÍAS */}
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
             {categoriasIluminacion.map((cat) => (
               <button
@@ -340,66 +277,126 @@ export default function IluminacionPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {accesoriosFiltrados.map((item) => {
-              const isFlipped = flippedCards[item.id] || false;
-              return (
-                <div 
-                  key={item.id}
-                  onClick={() => toggleFlip(item.id)}
-                  className="h-[420px] w-full cursor-pointer [perspective:1000px] group"
-                >
-                  <div className={`relative h-full w-full rounded-2xl shadow-md transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                    
-                    {/* FRENTE OPTIMIZADO PARA IMÁGENES 1024x1024 (1:1) */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-white p-4 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
-                      <div className="w-full aspect-square bg-gray-50 rounded-xl relative overflow-hidden border border-gray-100 flex items-center justify-center p-2">
-                        <Image 
-                          src={item.imagen} 
-                          alt={item.nombre} 
-                          fill={true} 
-                          className="object-contain p-1" 
-                          unoptimized={true}
-                        />
-                      </div>
-                      <div className="text-center my-auto px-1">
-                        <h3 className="text-base font-extrabold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2">
-                          {item.nombre}
-                        </h3>
-                        <p className="text-[11px] text-gray-500 mt-1">Haz clic para ver ficha 🔄</p>
-                      </div>
-                    </div>
+          {/* ESTADO CARGANDO / SIN PRODUCTOS */}
+          {cargando ? (
+            <div className="text-center py-16">
+              <p className="text-lg font-bold text-blue-900 animate-pulse">Cargando productos de iluminación...</p>
+            </div>
+          ) : productosFiltrados.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200">
+              <p className="text-gray-500 font-semibold">No hay productos registrados en esta categoría aún.</p>
+            </div>
+          ) : (
+            /* RETÍCULA DE TARJETAS COMPACTAS */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+              {productosFiltrados.map((item) => {
+                const isFlipped = flippedCards[item.id] || false;
+                const codigoClave = item.codigo ? item.codigo.trim().toUpperCase() : '';
+                
+                // Mapeo con fallback hacia la descripción propia del producto
+                const invData = datosInventario[codigoClave];
+                const descripcionReverso = (invData && invData.descripcion && invData.descripcion.trim() !== '')
+                  ? invData.descripcion
+                  : item.descripcion;
 
-                    {/* REVERSO */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-blue-950 p-6 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
-                      <div>
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Ficha Técnica</span>
-                          <span className="text-xs text-gray-400">🔄 Volver</span>
+                const precioFinal = invData ? invData.precio : 0;
+                const existenciasFinales = invData ? invData.existencias : 0;
+
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => toggleFlip(item.id)}
+                    className="h-56 w-full cursor-pointer [perspective:1000px] group"
+                  >
+                    <div className={`relative h-full w-full rounded-xl shadow-sm transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+                      
+                      {/* FRENTE DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
+                        
+                        {/* CONTENEDOR DE IMAGEN (ABRE EL POP-UP AL DAR CLIC) */}
+                        <div 
+                          onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
+                          className="w-full h-24 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors"
+                          title="Haz clic para ampliar imagen"
+                        >
+                          <Image 
+                            src={item.imagen_url} 
+                            alt={item.codigo} 
+                            fill={true} 
+                            className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
+                            unoptimized={true}
+                          />
+                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
+                            🔍 Ampliar
+                          </span>
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">{item.nombre}</h3>
-                        <p className="text-xs text-gray-300 mb-4 leading-relaxed">
-                          {item.descripcion}
-                        </p>
+
+                        {/* TEXTO DE LA TARJETA (HACER CLIC AQUÍ GIRA LA TARJETA) */}
+                        <div className="text-center w-full mt-1">
+                          <span className="text-[9px] font-black text-orange-500 uppercase tracking-wider block truncate">
+                            CÓD: {item.codigo}
+                          </span>
+                          <h3 className="text-xs font-bold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-0.5 leading-tight" title={item.descripcion}>
+                            {item.descripcion}
+                          </h3>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Girar Ficha 🔄</p>
+                        </div>
                       </div>
 
-                      <div className="border-t border-blue-900 pt-3 space-y-2">
+                      {/* REVERSO DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
                         <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Potencias / Formatos:</span>
-                          <span className="text-xs font-bold text-orange-400">{item.medidas}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Especificaciones de Luz:</span>
-                          <span className="text-xs font-bold text-gray-200">{item.material}</span>
-                        </div>
-                      </div>
-                    </div>
+                          <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
+                            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
+                              CÓD: {item.codigo}
+                            </span>
+                            <span className="text-[9px] text-gray-400">🔄</span>
+                          </div>
+                          
+                          <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
+                            {descripcionReverso}
+                          </p>
 
+                          {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
+                          <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
+                            {item.mostrar_precio && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
+                                <span className="text-xs font-black text-orange-400">
+                                  ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
+                                </span>
+                              </div>
+                            )}
+
+                            {item.mostrar_existencias && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
+                                <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {formatearExistencias(existenciasFinales, item.unidad_medida)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* BOTÓN WHATSAPP COMPACTO */}
+                        <a
+                          href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
+                        >
+                          Cotizar WhatsApp
+                        </a>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* COTIZADOR */}

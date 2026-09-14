@@ -1,311 +1,197 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 
-// 1. Datos para las Especificaciones Técnicas y Medidas por Tipo de Tubo
-const tiposTuberia = [
-  {
-    id: 'pvc-ligero',
-    nombre: 'PVC Ligero (Verde)',
-    uso: 'Instalaciones eléctricas ocultas en losas, muros y pisos de concreto en vivienda o comercio.',
-    norma: 'Resistente a la humedad y corrosión. No propagador de flama.',
-    medidas: [
-      { medida: '1/2" (13 mm)', tramo: '3.00 mts', usoComun: 'Cableado residencial estándar (Focos y contactos)' },
-      { medida: '3/4" (19 mm)', tramo: '3.00 mts', usoComun: 'Acometidas internas y centros de carga' },
-      { medida: '1" (25 mm)', tramo: '3.00 mts', usoComun: 'Alimentaciones principales y mayor densidad de cables' },
-      { medida: '1 1/4" (32 mm)', tramo: '3.00 mts', usoComun: 'Líneas secundarias de distribución' },
-      { medida: '1 1/2" (38 mm)', tramo: '3.00 mts', usoComun: 'Alimentadores de alta capacidad' },
-      { medida: '2" (50 mm)', tramo: '3.00 mts', usoComun: 'Acometidas comerciales e industriales' }
-    ]
-  },
-  {
-    id: 'pvc-pesado',
-    nombre: 'PVC Pesado (Gris)',
-    uso: 'Instalaciones industriales o expuestas que requieren alta resistencia al impacto.',
-    norma: 'Soportabilidad mecánica superior. Apto para enterramiento directo.',
-    medidas: [
-      { medida: '1/2" (13 mm)', tramo: '3.00 mts', usoComun: 'Circuitos industriales de baja tensión' },
-      { medida: '3/4" (19 mm)', tramo: '3.00 mts', usoComun: 'Alimentación de maquinaria y tableros' },
-      { medida: '1" (25 mm)', tramo: '3.00 mts', usoComun: 'Líneas primarias de fuerza' },
-      { medida: '1 1/4" (32 mm)', tramo: '3.00 mts', usoComun: 'Canalización de control e instrumentación' },
-      { medida: '1 1/2" (38 mm)', tramo: '3.00 mts', usoComun: 'Alimentadores generales de motores' },
-      { medida: '2" (50 mm)', tramo: '3.00 mts', usoComun: 'Acometidas subterráneas industriales' },
-      { medida: '3" (75 mm)', tramo: '3.00 mts', usoComun: 'Ductos primarios de subestaciones' },
-      { medida: '4" (100 mm)', tramo: '3.00 mts', usoComun: 'Trincheras y alimentadores de alta potencia' }
-    ]
-  },
-  {
-    id: 'galvanizado',
-    nombre: 'Conduit Galvanizado',
-    uso: 'Instalaciones visibles comerciales e industriales con protección mecánica máxima contra golpes y chispas.',
-    norma: 'Pared Delgada (PDR) y Pared Gruesa (PGR). Con y sin rosca.',
-    medidas: [
-      { medida: '1/2" (13 mm)', tramo: '3.00 mts', usoComun: 'Líneas visibles, naves industriales y locales' },
-      { medida: '3/4" (19 mm)', tramo: '3.00 mts', usoComun: 'Conexión de motores y tableros de control' },
-      { medida: '1" (25 mm)', tramo: '3.00 mts', usoComun: 'Acometidas comerciales y tableros principales' },
-      { medida: '1 1/4" (32 mm)', tramo: '3.00 mts', usoComun: 'Líneas mecánicas de protección exigente' },
-      { medida: '1 1/2" (38 mm)', tramo: '3.00 mts', usoComun: 'Mufas de medición y fuerza industrial' },
-      { medida: '2" (50 mm)', tramo: '3.00 mts', usoComun: 'Entradas de servicio de alta tensión' },
-      { medida: '3" (75 mm)', tramo: '3.00 mts', usoComun: 'Subestaciones y alimentadores pesados' },
-      { medida: '4" (100 mm)', tramo: '3.00 mts', usoComun: 'Acometidas generales de nave industrial' }
-    ]
-  },
-  {
-    id: 'poliducto',
-    nombre: 'Poliducto y Manguera',
-    uso: 'Canalización flexible para alojar conductores en losas de concreto o excavaciones subterráneas.',
-    norma: 'Presentación en rollo continuo. Poliducto Naranja (Liso) y Negro / Corrugado.',
-    medidas: [
-      { medida: '1/2" (13 mm)', tramo: 'Rollo 100 mts', usoComun: 'Cableado flexible en muros de tabique/tabla roca' },
-      { medida: '3/4" (19 mm)', tramo: 'Rollo 100 mts', usoComun: 'Acometidas subterráneas de baja tensión' },
-      { medida: '1" (25 mm)', tramo: 'Rollo 50 mts', usoComun: 'Tramos largos de alimentación exterior' },
-      { medida: '1 1/4" (32 mm)', tramo: 'Rollo 50 mts', usoComun: 'Pases de losa y ramales principales' },
-      { medida: '1 1/2" (38 mm)', tramo: 'Rollo 50 mts', usoComun: 'Ducto flexible de acometida' },
-      { medida: '2" (50 mm)', tramo: 'Rollo 50 mts', usoComun: 'Canalización subterránea continua' }
-    ]
-  },
-  {
-    id: 'flexible-licuatite',
-    nombre: 'Tubo Flexible y Licuatite',
-    uso: 'Conexión final a motores, transformadores, luminarias o equipos sujetos a vibración, humedad o intemperie.',
-    norma: 'Flexible Metálico (Zapa) y Licuatite (Flexible engomado con recubrimiento de PVC hermético a líquidos y aceites).',
-    medidas: [
-      { medida: '1/2" (13 mm)', tramo: 'Rollo / Por metro', usoComun: 'Acometida flexible a motores pequeños, bombas y luminarias' },
-      { medida: '3/4" (19 mm)', tramo: 'Rollo / Por metro', usoComun: 'Conexión a tableros con vibración y maquinaria' },
-      { medida: '1" (25 mm)', tramo: 'Rollo / Por metro', usoComun: 'Alimentación hermética a motores medianos' },
-      { medida: '1 1/4" (32 mm)', tramo: 'Rollo / Por metro', usoComun: 'Acometidas flexibles en plantas industriales' },
-      { medida: '1 1/2" (38 mm)', tramo: 'Rollo / Por metro', usoComun: 'Conexión a transformadores de distribución' },
-      { medida: '2" (50 mm)', tramo: 'Rollo / Por metro', usoComun: 'Líneas flexibles de potencia de alto calibre' },
-      { medida: '3" (75 mm)', tramo: 'Rollo / Por metro', usoComun: 'Conexión hermética en subestaciones industriales' },
-      { medida: '4" (100 mm)', tramo: 'Rollo / Por metro', usoComun: 'Ducto flexible hermético para alta capacidad' }
-    ]
-  },
-  {
-    id: 'soportes-unicanal',
-    nombre: 'Soportes y Perfiles',
-    uso: 'Estructuras de fijación y soporte para la suspensión o montaje de tubería, charolas y centros de carga.',
-    norma: 'Fabricados en acero galvanizado para alta resistencia mecánica y protección contra corrosión.',
-    medidas: [
-      { medida: 'Riel Everest (4.8 x 4.22 cm)', tramo: '3.00 mts', usoComun: 'Montaje de abrazaderas y soporte de tuberías en muro/techo' },
-      { medida: 'Perfil Unicanal Liso (2x4 cm)', tramo: '3.00 mts', usoComun: 'Soporte colgante ligero para conduit y luminarias' },
-      { medida: 'Perfil Unicanal Perforado (2x4 cm)', tramo: '3.00 mts', usoComun: 'Anclaje rápido con varilla roscada para tuberías' },
-      { medida: 'Perfil Unicanal Liso (4x4 cm)', tramo: '3.00 mts', usoComun: 'Estructura pesada para tableros y tendidos de fuerza' },
-      { medida: 'Perfil Unicanal Perforado (4x4 cm)', tramo: '3.00 mts', usoComun: 'Soporte pesado de alta versatilidad de fijación' }
-    ]
-  }
+// Sub-Pestañas de Filtrado para Tubería y Canalización
+const categoriasTuberia = [
+  { id: 'Todas', nombre: 'Todas' },
+  { id: 'TUBERIA RIGIDA', nombre: 'Tubería Rígida (PVC/Galvanizado)' },
+  { id: 'TUBERIA FLEXIBLE', nombre: 'Tubería Flexible y Licuatite' },
+  { id: 'CONEXIONES', nombre: 'Conexiones y Coples' },
+  { id: 'ABRAZADERAS Y SOPORTERIA', nombre: 'Abrazaderas, Unicanal y Everest' }
 ]
 
-// 2. Categorías de Sub-Pestañas para Accesorios
-const categoriasAccesorios = [
-  { id: 'conexiones-tubo', nombre: 'Conexiones Rígidas' },
-  { id: 'flexibles-glandulas', nombre: 'Conectores Flexibles y Glándulas' },
-  { id: 'abrazaderas', nombre: 'Abrazaderas' },
-  { id: 'soporteria-everest', nombre: 'Perfilería, Unicanal y Everest' },
-]
+interface ProductoTuberia {
+  id: number
+  codigo: string
+  descripcion: string
+  categoria: string
+  subcategoria: string
+  imagen_url: string
+  mostrar_precio: boolean
+  mostrar_existencias: boolean
+  unidad_medida?: string
+}
 
-// 3. Lista Completa de Accesorios Organizada por Categoria (categoriaId)
-const accesorios = [
-  // --- CONEXIONES RÍGIDAS ---
-  {
-    id: 1,
-    categoriaId: 'conexiones-tubo',
-    nombre: 'Cople, Conector y Codo Galvanizado',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cople-conector.jpg',
-    descripcion: 'Unión rígida y conexión a caja para tubería metálica conduit en pared delgada o gruesa.',
-    medidas: '1/2", 3/4", 1", 1 1/4", 1 1/2", 2", 3", 4"',
-    material: 'Acero Galvanizado / ZAMAK'
-  },
-  {
-    id: 2,
-    categoriaId: 'conexiones-tubo',
-    nombre: 'Cople y Conector Compresión',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cople-conector-compresion.jpg',
-    descripcion: 'Ensamble a presión mediante tuerca de apriete para tubería galvanizada sin roscar.',
-    medidas: '1/2", 3/4", 1", 1 1/4", 1 1/2", 2", 3", 4"',
-    material: 'Acero Galvanizado'
-  },
-  {
-    id: 3,
-    categoriaId: 'conexiones-tubo',
-    nombre: 'Cople, Conector y Codo PVC Verde',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/pvc-ligero.jpg',
-    descripcion: 'Accesorios para cementar y acoplar tubería de PVC ligero en losas y muros de concreto.',
-    medidas: '1/2", 3/4", 1", 1 1/4", 1 1/2", 2"',
-    material: 'PVC Ligero'
-  },
-  {
-    id: 4,
-    categoriaId: 'conexiones-tubo',
-    nombre: 'Cople, Conector y Codo PVC Gris',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/pvc-pesado.jpg',
-    descripcion: 'Conexiones de alta resistencia mecánica para canalización de PVC pesado e industrial.',
-    medidas: '1/2", 3/4", 1", 1 1/4", 1 1/2", 2", 3", 4"',
-    material: 'PVC Pesado'
-  },
-  {
-    id: 5,
-    categoriaId: 'conexiones-tubo',
-    nombre: 'Contratuercas y Monitores',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/contratuerca-monitor.jpg',
-    descripcion: 'Ajuste de rosca interior/exterior y protección plástica contra rozaduras de cable en cajas.',
-    medidas: '1/2", 3/4", 1", 1 1/4", 1 1/2", 2", 3", 4"',
-    material: 'Acero Galvanizado / ZAMAK / Plástico'
-  },
-  {
-    id: 6,
-    categoriaId: 'conexiones-tubo',
-    nombre: 'Cople Roscado y Reducción Bushing',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/cople-reduccion.jpg',
-    descripcion: 'Adaptación de calibres y unión roscada para tubería conduit de pared gruesa.',
-    medidas: '1/2" a 4" (Múltiples combinaciones de reducción)',
-    material: 'Hierro Maleable / Aluminio'
-  },
-
-  // --- FLEXIBLES Y GLÁNDULAS ---
-  {
-    id: 7,
-    categoriaId: 'flexibles-glandulas',
-    nombre: 'Conector HLR y HLC (Licuatite)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/conector-licuatite.jpg',
-    descripcion: 'Conectores rectos (HLR) y curvos a 90° (HLC) herméticos a líquidos para Licuatite.',
-    medidas: '1/2", 3/4", 1", 1 1/4", 1 1/2", 2", 3", 4"',
-    material: 'ZAMAK / Hierro Maleable'
-  },
-  {
-    id: 8,
-    categoriaId: 'flexibles-glandulas',
-    nombre: 'Conector FXR y FXC (Flexible)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/conector-flexible.jpg',
-    descripcion: 'Conectores rectos (FXR) y curvos (FXC) para la fijación firme de tubo flexible Zapa.',
-    medidas: '1/2", 3/4", 1", 1 1/4", 1 1/2", 2", 3", 4"',
-    material: 'ZAMAK / Aluminio'
-  },
-  {
-    id: 9,
-    categoriaId: 'flexibles-glandulas',
-    nombre: 'Glándula de Prensaestopa',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/conector-glandula.jpg',
-    descripcion: 'Sello hermético NEMA 4X que impide agua y polvo en la entrada de cables a tableros.',
-    medidas: '3/8", 1/2", 3/4", 1", 1 1/4"',
-    material: 'Nylon Plástico / Bronce Niquelado'
-  },
-  {
-    id: 10,
-    categoriaId: 'flexibles-glandulas',
-    nombre: 'Conector Uso Rudo',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/conector-rudo.jpg',
-    descripcion: 'Sujetador y alivio de tensión para cables de uso rudo multifilares al ingresar a cajas.',
-    medidas: '1/2", 3/4", 1"',
-    material: 'ZAMAK / Plástico'
-  },
-  {
-    id: 11,
-    categoriaId: 'flexibles-glandulas',
-    nombre: 'Conector FXE (Poliducto Naranja)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/conector-fxe.jpg',
-    descripcion: 'Conector rápido para ensamble y acople firme de poliducto naranja a cajas de registro.',
-    medidas: '1/2", 3/4"',
-    material: 'Plástico de Alta Resistencia'
-  },
-
-  // --- ABRAZADERAS ---
-  {
-    id: 12,
-    categoriaId: 'abrazaderas',
-    nombre: 'Abrazadera Omega y Uña',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/u%C3%B1a-omega.jpg',
-    descripcion: 'Sujeción de 2 apoyos (Omega) o 1 apoyo (Uña) para fijación directa de tubería en muro o estructura.',
-    medidas: '1/4", 3/8", 1/2", 3/4", 1", 1 1/4", 1 1/2", 2", 3"',
-    material: 'Acero Galvanizado'
-  },
-  {
-    id: 13,
-    categoriaId: 'abrazaderas',
-    nombre: 'Abrazadera Clip',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/clip.jpg',
-    descripcion: 'Sujetador a presión de ajuste rápido para montaje ágil de tubos conduit.',
-    medidas: '1/2", 3/4", 1", 1 1/4", 1 1/2", 2"',
-    material: 'Acero Galvanizado'
-  },
-  {
-    id: 14,
-    categoriaId: 'abrazaderas',
-    nombre: 'Abrazadera Unistrut',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/unicanal.jpg',
-    descripcion: 'Abrazadera de 2 piezas para encaje perfecto en rieles de soporte y perfiles Unicanal.',
-    medidas: '1/2", 3/4", 1", 1 1/4", 1 1/2", 2", 3", 4"',
-    material: 'Acero Galvanizado'
-  },
-
-  // --- SOPORTERÍA, UNICANAL Y EVEREST ---
-  {
-    id: 15,
-    categoriaId: 'soporteria-everest',
-    nombre: 'Perfil Unicanal (2x4 y 4x4 cm)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/riel-unicanal.jpg',
-    descripcion: 'Canal estructural metálico liso y perforado para la suspensión de tuberías y tableros.',
-    medidas: '2x4 cm y 4x4 cm (Tramo de 3.00 mts)',
-    material: 'Acero Galvanizado'
-  },
-  {
-    id: 16,
-    categoriaId: 'soporteria-everest',
-    nombre: 'Riel Everest (4.8 x 4.22 cm)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/riel-everest.jpg',
-    descripcion: 'Riel de soporte de alta carga para sistemas estructurales y tendidos eléctricos.',
-    medidas: '4.8 x 4.22 cm (Tramo de 3.00 mts)',
-    material: 'Acero Galvanizado'
-  },
-  {
-    id: 17,
-    categoriaId: 'soporteria-everest',
-    nombre: 'Coples, Soleras y Horizontal/Vertical',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/kit1.jpg',
-    descripcion: 'Placas planas, en "L" y empalmes para unir tramos de perfiles Unicanal y Everest.',
-    medidas: 'Estándar para Unicanal 2x4, 4x4 y Riel Everest',
-    material: 'Acero Galvanizado'
-  },
-  {
-    id: 18,
-    categoriaId: 'soporteria-everest',
-    nombre: 'Mid Clamps y End Clamps',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/kit2.jpg',
-    descripcion: 'Grapas intermedias y terminales para sujeción de paneles y módulos sobre perfiles.',
-    medidas: 'Ajustables para marcos de 30mm a 40mm',
-    material: 'Aluminio Anodizado / Acero Inoxidable'
-  },
-  {
-    id: 19,
-    categoriaId: 'soporteria-everest',
-    nombre: 'Suela Tipo Piso / Base',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/kit3.jpg',
-    descripcion: 'Base de anclaje a piso o losa para fijar columnas verticales de perfil Unicanal o Everest.',
-    medidas: 'Para perfil 2x4 cm y 4x4 cm',
-    material: 'Acero Galvanizado de Calibre Pesado'
-  }
-]
+interface DatosInventario {
+  codigo: string
+  descripcion: string 
+  precio: number
+  existencias: number
+}
 
 export default function TuberiaPage() {
-  const [tipoActivo, setTipoActivo] = useState(tiposTuberia[0].id)
-  
-  // Estado para controlar la Sub-Pestaña activa en los accesorios
-  const [catAccesorioActiva, setCatAccesorioActiva] = useState(categoriasAccesorios[0].id)
-  
+  const [catAccesorioActiva, setCatAccesorioActiva] = useState('Todas')
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>({})
+  
+  // Estado para controlar la imagen abierta en el Pop-up / Modal
+  const [imagenModal, setImagenModal] = useState<{ url: string; codigo: string } | null>(null)
+
+  // Estados dinámicos de Supabase
+  const [productos, setProductos] = useState<ProductoTuberia[]>([])
+  const [datosInventario, setDatosInventario] = useState<Record<string, DatosInventario>>({})
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    const fetchProductos = async () => {
+      // 1. Cargar catálogo de productos_tuberia ordenados alfabéticamente por descripción
+      const { data: prods, error } = await supabase
+        .from('productos_tuberia')
+        .select('*')
+        .order('descripcion', { ascending: true })
+
+      if (!active) return
+
+      if (error) {
+        console.error('Error al cargar productos_tuberia:', error.message || error)
+        setCargando(false)
+        return
+      }
+
+      if (prods && prods.length > 0) {
+        setProductos(prods)
+
+        // 2. Extraer códigos limpios en mayúsculas
+        const codigosLimpios = Array.from(
+          new Set(
+            prods
+              .map(p => (p.codigo ? p.codigo.trim().toUpperCase() : ''))
+              .filter(c => c.length > 0)
+          )
+        )
+
+        // 3. Consultar la tabla "productos" para sincronizar precios y stock
+        if (codigosLimpios.length > 0) {
+          const { data: invData, error: invError } = await supabase
+            .from('productos')
+            .select('codigo, descripcion, precio, existencias')
+            .in('codigo', codigosLimpios)
+
+          if (invError) {
+            console.error('Error al consultar tabla productos:', invError.message || invError)
+          }
+
+          if (active && invData) {
+            const mapInv: Record<string, DatosInventario> = {}
+            invData.forEach(item => {
+              if (item.codigo) {
+                mapInv[item.codigo.trim().toUpperCase()] = {
+                  codigo: item.codigo.trim().toUpperCase(),
+                  descripcion: item.descripcion || '',
+                  precio: Number(item.precio) || 0,
+                  existencias: Number(item.existencias) || 0
+                }
+              }
+            })
+            setDatosInventario(mapInv)
+          }
+        }
+      }
+
+      if (active) {
+        setCargando(false)
+      }
+    }
+
+    fetchProductos()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const toggleFlip = (id: number) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const tipoSeleccionado = tiposTuberia.find(t => t.id === tipoActivo) || tiposTuberia[0]
+  const abrirImagenModal = (e: React.MouseEvent, url: string, codigo: string) => {
+    // Evita que la tarjeta gire al hacer clic sobre la imagen
+    e.stopPropagation()
+    setImagenModal({ url, codigo })
+  }
 
-  // Filtramos los accesorios según la sub-pestaña seleccionada
-  const accesoriosFiltrados = accesorios.filter(a => a.categoriaId === catAccesorioActiva)
+  // Función para formatear las existencias según la unidad de medida
+  const formatearExistencias = (existencias: number, unidad?: string) => {
+    if (existencias <= 0) return 'Agotado'
+
+    const u = (unidad || 'pieza').toLowerCase()
+    let etiqueta = 'pza(s)'
+
+    if (u === 'metro' || u === 'm') etiqueta = 'm'
+    else if (u === 'kilogramo' || u === 'kg') etiqueta = 'kg'
+    else if (u === 'rollo') etiqueta = 'rollo(s)'
+    else if (u === 'caja') etiqueta = 'caja(s)'
+    else if (u === 'tramo') etiqueta = 'tramo(s)'
+
+    return `${existencias} ${etiqueta}`
+  }
+
+  const productosFiltrados = catAccesorioActiva === 'Todas'
+    ? productos
+    : productos.filter(p => p.categoria === catAccesorioActiva || p.subcategoria === catAccesorioActiva)
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 pt-20">
+      
+      {/* MODAL POP-UP DE IMAGEN COMPLETA */}
+      {imagenModal && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+          onClick={() => setImagenModal(null)}
+        >
+          <div 
+            className="relative bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl overflow-hidden flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* BOTÓN DE CIERRE (X) */}
+            <button
+              type="button"
+              onClick={() => setImagenModal(null)}
+              className="absolute top-4 right-4 bg-gray-100 hover:bg-orange-500 hover:text-white text-gray-700 w-10 h-10 rounded-full flex items-center justify-center font-black text-lg transition-colors shadow-md z-10"
+              title="Cerrar vista previa"
+            >
+              ✕
+            </button>
+
+            {/* ENCABEZADO DEL MODAL */}
+            <div className="w-full text-left border-b border-gray-100 pb-3 mb-4 pr-12">
+              <span className="text-xs font-black text-orange-500 uppercase tracking-wider block">Vista de Producto</span>
+              <h3 className="text-lg font-extrabold text-blue-900">Código: {imagenModal.codigo}</h3>
+            </div>
+
+            {/* CONTENEDOR DE LA IMAGEN AMPLIADA */}
+            <div className="relative w-full h-[60vh] sm:h-[70vh] bg-gray-50 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center">
+              <Image
+                src={imagenModal.url}
+                alt={imagenModal.codigo}
+                fill={true}
+                className="object-contain p-4"
+                unoptimized={true}
+              />
+            </div>
+            
+            <p className="text-xs text-gray-400 mt-3 font-medium">
+              Haz clic fuera o presiona la X para cerrar
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         
         {/* NAVEGACIÓN Y ENCABEZADO */}
@@ -321,7 +207,7 @@ export default function TuberiaPage() {
           </p>
         </div>
 
-        {/* BLOQUE 1: MUESTRARIO GENERAL Y FICHA TÉCNICA */}
+        {/* MUESTRARIO DESTACADO */}
         <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden mb-12 grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 sm:p-10 items-center">
           <div className="lg:col-span-5 bg-gray-50 rounded-2xl p-4 flex items-center justify-center border border-gray-200">
             <div className="relative w-full h-[320px] sm:h-[400px]">
@@ -360,85 +246,23 @@ export default function TuberiaPage() {
           </div>
         </div>
 
-        {/* BLOQUE 2: SELECTOR DE TIPOS Y TABLA DE MEDIDAS */}
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-10 mb-16">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-              Especificaciones y Medidas por Tipo
-            </h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Selecciona la pestaña para consultar aplicaciones y tramos disponibles.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
-            {tiposTuberia.map((tipo) => (
-              <button
-                key={tipo.id}
-                onClick={() => setTipoActivo(tipo.id)}
-                className={`px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm ${
-                  tipoActivo === tipo.id 
-                    ? 'bg-blue-900 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {tipo.nombre}
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs font-bold text-orange-500 uppercase tracking-wider block mb-1">Uso Recomendado</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.uso}</p>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-blue-900 uppercase tracking-wider block mb-1">Especificación Técnica</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.norma}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-blue-950 text-white text-xs uppercase">
-                <tr>
-                  <th className="py-3.5 px-4 font-extrabold">Medida / Presentación</th>
-                  <th className="py-3.5 px-4 font-extrabold">Longitud</th>
-                  <th className="py-3.5 px-4 font-extrabold">Aplicación Típica</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {tipoSeleccionado.medidas.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-blue-900">{item.medida}</td>
-                    <td className="py-3.5 px-4 text-gray-600 font-medium">{item.tramo}</td>
-                    <td className="py-3.5 px-4 text-gray-800">{item.usoComun}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* BLOQUE 3: ACCESORIOS CON SUB-PESTAÑAS */}
+        {/* TARJETAS INTERACTIVAS COMPACTAS (CATÁLOGO DIRECTO) */}
         <div className="mb-16">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              Complementos
+              Sistemas de Canalización
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-blue-900 mt-3">
-              Accesorios, Conexiones y Soportería
+              Catálogo de Tubería, Conexiones y Soportería
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              Explora las sub-categorías y haz clic en cualquier tarjeta para consultar detalles.
+              Haz clic en la imagen para verla en pantalla completa, o en el texto para girar la tarjeta.
             </p>
           </div>
 
-          {/* Sub-Pestañas de Filtro para Accesorios */}
+          {/* FILTRO DE CATEGORÍAS */}
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
-            {categoriasAccesorios.map((cat) => (
+            {categoriasTuberia.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setCatAccesorioActiva(cat.id)}
@@ -453,67 +277,126 @@ export default function TuberiaPage() {
             ))}
           </div>
 
-          {/* Cuadrícula de Tarjetas Filtradas */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {accesoriosFiltrados.map((item) => {
-              const isFlipped = flippedCards[item.id] || false;
-              return (
-                <div 
-                  key={item.id}
-                  onClick={() => toggleFlip(item.id)}
-                  className="h-80 w-full cursor-pointer [perspective:1000px] group"
-                >
-                  <div className={`relative h-full w-full rounded-2xl shadow-md transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                    
-                    {/* FRENTE DE LA TARJETA */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-white p-6 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
-                      <div className="w-full h-40 bg-gray-50 rounded-xl relative overflow-hidden border border-gray-100">
-                        <Image 
-                          src={item.imagen} 
-                          alt={item.nombre} 
-                          fill={true} 
-                          className="object-cover" 
-                          unoptimized={true}
-                        />
-                      </div>
-                      <div className="text-center mt-2">
-                        <h3 className="text-base sm:text-lg font-extrabold text-blue-900 group-hover:text-orange-500 transition-colors">
-                          {item.nombre}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1">Haz clic para ver especificaciones 🔄</p>
-                      </div>
-                    </div>
+          {/* ESTADO CARGANDO / SIN PRODUCTOS */}
+          {cargando ? (
+            <div className="text-center py-16">
+              <p className="text-lg font-bold text-blue-900 animate-pulse">Cargando productos de tubería y canalización...</p>
+            </div>
+          ) : productosFiltrados.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200">
+              <p className="text-gray-500 font-semibold">No hay productos registrados en esta categoría aún.</p>
+            </div>
+          ) : (
+            /* RETÍCULA DE TARJETAS COMPACTAS */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+              {productosFiltrados.map((item) => {
+                const isFlipped = flippedCards[item.id] || false;
+                const codigoClave = item.codigo ? item.codigo.trim().toUpperCase() : '';
+                
+                // Mapeo con fallback hacia la descripción propia del producto
+                const invData = datosInventario[codigoClave];
+                const descripcionReverso = (invData && invData.descripcion && invData.descripcion.trim() !== '')
+                  ? invData.descripcion
+                  : item.descripcion;
 
-                    {/* REVERSO DE LA TARJETA */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-blue-950 p-6 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
-                      <div>
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Ficha Técnica</span>
-                          <span className="text-xs text-gray-400">🔄 Volver</span>
+                const precioFinal = invData ? invData.precio : 0;
+                const existenciasFinales = invData ? invData.existencias : 0;
+
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => toggleFlip(item.id)}
+                    className="h-56 w-full cursor-pointer [perspective:1000px] group"
+                  >
+                    <div className={`relative h-full w-full rounded-xl shadow-sm transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+                      
+                      {/* FRENTE DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
+                        
+                        {/* CONTENEDOR DE IMAGEN (ABRE EL POP-UP AL DAR CLIC) */}
+                        <div 
+                          onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
+                          className="w-full h-24 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors"
+                          title="Haz clic para ampliar imagen"
+                        >
+                          <Image 
+                            src={item.imagen_url} 
+                            alt={item.codigo} 
+                            fill={true} 
+                            className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
+                            unoptimized={true}
+                          />
+                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
+                            🔍 Ampliar
+                          </span>
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">{item.nombre}</h3>
-                        <p className="text-xs text-gray-300 mb-4 leading-relaxed">
-                          {item.descripcion}
-                        </p>
+
+                        {/* TEXTO DE LA TARJETA (HACER CLIC AQUÍ GIRA LA TARJETA) */}
+                        <div className="text-center w-full mt-1">
+                          <span className="text-[9px] font-black text-orange-500 uppercase tracking-wider block truncate">
+                            CÓD: {item.codigo}
+                          </span>
+                          <h3 className="text-xs font-bold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-0.5 leading-tight" title={item.descripcion}>
+                            {item.descripcion}
+                          </h3>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Girar Ficha 🔄</p>
+                        </div>
                       </div>
 
-                      <div className="border-t border-blue-900 pt-3 space-y-2">
+                      {/* REVERSO DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
                         <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Medidas Disponibles:</span>
-                          <span className="text-xs font-bold text-orange-400">{item.medidas}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Material:</span>
-                          <span className="text-xs font-bold text-gray-200">{item.material}</span>
-                        </div>
-                      </div>
-                    </div>
+                          <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
+                            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
+                              CÓD: {item.codigo}
+                            </span>
+                            <span className="text-[9px] text-gray-400">🔄</span>
+                          </div>
+                          
+                          <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
+                            {descripcionReverso}
+                          </p>
 
+                          {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
+                          <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
+                            {item.mostrar_precio && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
+                                <span className="text-xs font-black text-orange-400">
+                                  ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
+                                </span>
+                              </div>
+                            )}
+
+                            {item.mostrar_existencias && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
+                                <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {formatearExistencias(existenciasFinales, item.unidad_medida)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* BOTÓN WHATSAPP COMPACTO */}
+                        <a
+                          href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
+                        >
+                          Cotizar WhatsApp
+                        </a>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* LLAMADO A COTIZAR */}

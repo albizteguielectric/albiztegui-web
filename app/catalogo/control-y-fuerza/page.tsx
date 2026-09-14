@@ -1,175 +1,196 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 
-// 1. Datos para la Guía Técnica de Control y Fuerza
-const tiposControlFuerza = [
-  {
-    id: 'centros-breakers',
-    nombre: 'Centros de Carga e Interruptores Termomagnéticos',
-    uso: 'Protección contra sobrecargas y cortocircuitos en instalaciones residenciales, comerciales e industriales.',
-    norma: 'Compatibilidad con montaje QD (presión), QP (enchufe) y modulares para riel DIN.',
-    medidas: [
-      { modelo: 'Centros de Carga (Sobreponer / Empotrar / Riel)', capacidad: '1 a 30 Circuitos (Monofásicos / Trifásicos)', usoComun: 'Distribución en tableros principales y sub-tableros' },
-      { modelo: 'Interruptores QD y QP', capacidad: '15A a 100A (1, 2 y 3 Polos)', usoComun: 'Protección de circuitos de alumbrado y contactos en tablero residencial' },
-      { modelo: 'Interruptores para Riel DIN', capacidad: '2A a 100A (1, 2 y 3 Polos)', usoComun: 'Protección modular en centros de carga de riel y tableros automatizados' },
-      { modelo: 'Termomagnéticos Pesados (Caja Moldeada)', capacidad: '32A a 250A (Alta Capacidad Interruptiva)', usoComun: 'Protección de alimentadores principales y cargas industriales' }
-    ]
-  },
-  {
-    id: 'contactores-relevadores',
-    nombre: 'Contactores, Relevadores y Guardamotores',
-    uso: 'Conmutación remota de cargas, maniobra de motores y protección térmica/magnética industrial.',
-    norma: 'Aislamiento hasta 600V, bobinas multivoltaje AC/DC y relevadores bimetálicos de sobrecarga.',
-    medidas: [
-      { modelo: 'Contactores de Potencia (2 y 3 Polos)', capacidad: '18A a 250A (Bobinas 24V, 110V, 220V, 440V)', usoComun: 'Control de motores, bancos de capacitores y alumbrado' },
-      { modelo: 'Relevadores de Sobrecarga (Térmicos)', capacidad: 'Rangos acoplables a contactores de 18A a 250A', usoComun: 'Protección contra fallas de fase y sobrecorriente' },
-      { modelo: 'Guardamotores y Arrancadores', capacidad: 'Ajustables para protección integral de motor', usoComun: 'Arranque directo y protección compacta DIN' }
-    ]
-  },
-  {
-    id: 'acometida-medicion',
-    nombre: 'Bases Socket y Kit de Acometida',
-    uso: 'Recepción de energía eléctrica desde la red de distribución e integración del medidor de consumo.',
-    norma: 'Gabinete NEMA 3R para exterior, terminales de cobre de alta presión y accesorios normados CFE.',
-    medidas: [
-      { modelo: 'Bases Socket (4-100, 5-100, 7-200)', capacidad: '100A a 200A (4, 5 y 7 Terminales)', usoComun: 'Medición monofásica, bifásica y trifásica' },
-      { modelo: 'Accesorios de Acometida', capacidad: 'Tubos de 3m a 4m, Mufas, Hubs y Reducciones', usoComun: 'Armado completo de bajada e integración de medidor' }
-    ]
-  }
-]
-
-// 2. Sub-Pestañas de Categorías
+// Sub-Pestañas de Filtrado para Control, Fuerza y Acometidas
 const categoriasControl = [
-  { id: 'centros-carga', nombre: 'Centros de Carga' },
-  { id: 'breakers-termos', nombre: 'Breakers e Interruptores' },
-  { id: 'contactores', nombre: 'Contactores y Bobinas' },
-  { id: 'relevadores', nombre: 'Relevadores Térmicos' },
-  { id: 'guardamotores', nombre: 'Guardamotores y Arrancadores' },
-  { id: 'acometida-base', nombre: 'Bases Medidor y Acometida' }
+  { id: 'Todas', nombre: 'Todas' },
+  { id: 'CENTROS DE CARGA', nombre: 'Centros de Carga' },
+  { id: 'BRAKERS', nombre: 'Breakers e Interruptores' },
+  { id: 'DE CONTROL', nombre: 'Control y Automatización' },
+  { id: 'ACOMETIDA', nombre: 'Bases Medidor y Acometida' }
 ]
 
-// 3. Tarjetas Interactivas de Productos
-const accesorios = [
-  // --- CATEGORÍA 1: CENTROS DE CARGA ---
-  {
-    id: 1,
-    categoriaId: 'centros-carga',
-    nombre: 'Centros de Carga Sobrepuestos y Empotrables',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/centro-carga.jpg',
-    descripcion: 'Tableros de distribución de chapa metálica reforzada para interruptores tipo QD y QP.',
-    medidas: 'Desde 1 a 8 circuitos (Sobreponer) y 8 a 30 circuitos (Empotrar Monofásicos/Trifásicos)',
-    material: 'Lámina de Acero Pintura Electrostática (NEMA 1)'
-  },
-  {
-    id: 2,
-    categoriaId: 'centros-carga',
-    nombre: 'Centros de Carga para Riel DIN',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/centro-riel.jpg',
-    descripcion: 'Gabinete plástico o metálico con riel DIN integrado para interruptores termomagnéticos modulados.',
-    medidas: '3, 4, 6, 8 y 12 circuitos',
-    material: 'Termoplástico Autoextinguible / IP40'
-  },
+interface ProductoControl {
+  id: number
+  codigo: string
+  descripcion: string
+  categoria: string
+  subcategoria: string
+  imagen_url: string
+  mostrar_precio: boolean
+  mostrar_existencias: boolean
+  unidad_medida?: string
+}
 
-  // --- CATEGORÍA 2: BREAKERS E INTERRUPTORES (3 ÁREAS SEPARADAS) ---
-  {
-    id: 3,
-    categoriaId: 'breakers-termos',
-    nombre: 'Interruptores Termomagnéticos QD y QP',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/braker-qd-qp.jpg',
-    descripcion: 'Pastillas breaker residenciales y comerciales de tipo enchufe (QP) para garras estándar o fijación por presión (QD).',
-    medidas: 'QD (15A a 60A en 1P y 2P) | QP (15A a 60A en 1P; hasta 100A en 2P y 3P)',
-    material: 'Fijación por Presión / Enchufe'
-  },
-  {
-    id: 4,
-    categoriaId: 'breakers-termos',
-    nombre: 'Interruptores Termomagnéticos para Riel DIN',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/braker-riel.jpg',
-    descripcion: 'Interruptores automáticos modulados para montaje rápido en riel DIN de 35mm en centros de carga de riel y tableros de automatización.',
-    medidas: 'Capacidades de 2A a 100A (1, 2 y 3 Polos / Monofásicos y Trifásicos)',
-    material: 'Montaje Estándar Riel DIN (35mm)'
-  },
-  {
-    id: 5,
-    categoriaId: 'breakers-termos',
-    nombre: 'Interruptores de Caja Moldeada (Termomagnéticos Pesados)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/termo.jpg',
-    descripcion: 'Interruptores de gran volumen y alta capacidad interruptiva diseñados para la protección de alimentadores principales e industrias.',
-    medidas: 'Capacidades de 32A hasta 250A (2 y 3 Polos / Marcos H, J y K)',
-    material: 'Alta Capacidad Interruptiva (600V AC)'
-  },
-
-  // --- CATEGORÍA 3: CONTACTORES ---
-  {
-    id: 6,
-    categoriaId: 'contactores',
-    nombre: 'Contactores de Potencia (2 y 3 Polos)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/contactor.jpg',
-    descripcion: 'Dispositivos de conmutación electromagnética para encendido de motores, resistencias y alumbrado comercial.',
-    medidas: 'Capacidades de 18A, 25A, 32A, 40A, 50A, 65A, 80A, 95A hasta 250A',
-    material: 'Bobinas de 24V, 110V, 220V y 440V AC'
-  },
-
-  // --- CATEGORÍA 4: RELEVADORES TÉRMICOS ---
-  {
-    id: 7,
-    categoriaId: 'relevadores',
-    nombre: 'Relevadores de Sobrecarga Térmica',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/relevador.jpg',
-    descripcion: 'Módulos bimetálicos de protección que se acoplan directamente a la salida del contactor contra sobrecorrientes.',
-    medidas: 'Rangos de regulación equivalentes a la gama de contactores (18A a 250A)',
-    material: 'Restablecimiento Manual y Automático (1NA + 1NC)'
-  },
-
-  // --- CATEGORÍA 5: GUARDAMOTORES Y ARRANCADORES ---
-  {
-    id: 8,
-    categoriaId: 'guardamotores',
-    nombre: 'Guardamotores y Arrancadores Integrales',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/guardamotor.jpg',
-    descripcion: 'Protección magnetotérmica compacta para motores eléctricos en un solo cuerpo con dial de regulación de corriente.',
-    medidas: 'Ajustes de disparo desde 0.1A hasta 80A (Montaje en Riel DIN)',
-    material: 'Mando Por Botón o Perilla Giratoria'
-  },
-
-  // --- CATEGORÍA 6: BASES Y ACOMETIDA ---
-  {
-    id: 9,
-    categoriaId: 'acometida-base',
-    nombre: 'Bases Socket para Medidor (4, 5 y 7 Terminales)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/socket.jpg',
-    descripcion: 'Bases redondas y cuadradas para la recepción de wattthorímetros de CFE.',
-    medidas: 'Base 4-100 (4 terminales 100A), Base 5-100 (5 terminales 100A) y Base 7-200 (7 terminales 200A)',
-    material: 'Gabinete de Aluminio / Lámina Galvanizada NEMA 3R'
-  },
-  {
-    id: 10,
-    categoriaId: 'acometida-base',
-    nombre: 'Accesorios y Kit para Bajada de Acometida',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/accesorios-mufa.jpg',
-    descripcion: 'Componentes estructurales y de canalización para armar la entrada principal de servicio eléctrico.',
-    medidas: 'Tubos para acometida de 3m y 4m, Mufas de 1-1/4" a 2", Hubs roscados y Reducciones',
-    material: 'Acero Galvanizado de Pared Gruesa / Aluminio'
-  }
-]
+interface DatosInventario {
+  codigo: string
+  descripcion: string 
+  precio: number
+  existencias: number
+}
 
 export default function ControlFuerzaPage() {
-  const [tipoActivo, setTipoActivo] = useState(tiposControlFuerza[0].id)
-  const [catAccesorioActiva, setCatAccesorioActiva] = useState(categoriasControl[0].id)
+  const [catAccesorioActiva, setCatAccesorioActiva] = useState('Todas')
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>({})
+  
+  // Estado para controlar la imagen abierta en el Pop-up / Modal
+  const [imagenModal, setImagenModal] = useState<{ url: string; codigo: string } | null>(null)
+
+  // Estados dinámicos de Supabase
+  const [productos, setProductos] = useState<ProductoControl[]>([])
+  const [datosInventario, setDatosInventario] = useState<Record<string, DatosInventario>>({})
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    const fetchProductos = async () => {
+      // 1. Cargar catálogo de productos_control ordenados alfabéticamente por descripción
+      const { data: prods, error } = await supabase
+        .from('productos_control')
+        .select('*')
+        .order('descripcion', { ascending: true })
+
+      if (!active) return
+
+      if (error) {
+        console.error('Error al cargar productos_control:', error.message || error)
+        setCargando(false)
+        return
+      }
+
+      if (prods && prods.length > 0) {
+        setProductos(prods)
+
+        // 2. Extraer códigos limpios en mayúsculas
+        const codigosLimpios = Array.from(
+          new Set(
+            prods
+              .map(p => (p.codigo ? p.codigo.trim().toUpperCase() : ''))
+              .filter(c => c.length > 0)
+          )
+        )
+
+        // 3. Consultar la tabla "productos" para sincronizar precios y stock
+        if (codigosLimpios.length > 0) {
+          const { data: invData, error: invError } = await supabase
+            .from('productos')
+            .select('codigo, descripcion, precio, existencias')
+            .in('codigo', codigosLimpios)
+
+          if (invError) {
+            console.error('Error al consultar tabla productos:', invError.message || invError)
+          }
+
+          if (active && invData) {
+            const mapInv: Record<string, DatosInventario> = {}
+            invData.forEach(item => {
+              if (item.codigo) {
+                mapInv[item.codigo.trim().toUpperCase()] = {
+                  codigo: item.codigo.trim().toUpperCase(),
+                  descripcion: item.descripcion || '',
+                  precio: Number(item.precio) || 0,
+                  existencias: Number(item.existencias) || 0
+                }
+              }
+            })
+            setDatosInventario(mapInv)
+          }
+        }
+      }
+
+      if (active) {
+        setCargando(false)
+      }
+    }
+
+    fetchProductos()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const toggleFlip = (id: number) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const tipoSeleccionado = tiposControlFuerza.find(t => t.id === tipoActivo) || tiposControlFuerza[0]
-  const accesoriosFiltrados = accesorios.filter(a => a.categoriaId === catAccesorioActiva)
+  const abrirImagenModal = (e: React.MouseEvent, url: string, codigo: string) => {
+    // Evita que la tarjeta gire al hacer clic sobre la imagen
+    e.stopPropagation()
+    setImagenModal({ url, codigo })
+  }
+
+  // Función para formatear las existencias según la unidad de medida
+  const formatearExistencias = (existencias: number, unidad?: string) => {
+    if (existencias <= 0) return 'Agotado'
+
+    const u = (unidad || 'pieza').toLowerCase()
+    let etiqueta = 'pza(s)'
+
+    if (u === 'metro' || u === 'm') etiqueta = 'm'
+    else if (u === 'kilogramo' || u === 'kg') etiqueta = 'kg'
+    else if (u === 'rollo') etiqueta = 'rollo(s)'
+    else if (u === 'caja') etiqueta = 'caja(s)'
+
+    return `${existencias} ${etiqueta}`
+  }
+
+  const productosFiltrados = catAccesorioActiva === 'Todas'
+    ? productos
+    : productos.filter(p => p.categoria === catAccesorioActiva || p.subcategoria === catAccesorioActiva)
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 pt-20">
+      
+      {/* MODAL POP-UP DE IMAGEN COMPLETA */}
+      {imagenModal && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+          onClick={() => setImagenModal(null)}
+        >
+          <div 
+            className="relative bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl overflow-hidden flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* BOTÓN DE CIERRE (X) */}
+            <button
+              type="button"
+              onClick={() => setImagenModal(null)}
+              className="absolute top-4 right-4 bg-gray-100 hover:bg-orange-500 hover:text-white text-gray-700 w-10 h-10 rounded-full flex items-center justify-center font-black text-lg transition-colors shadow-md z-10"
+              title="Cerrar vista previa"
+            >
+              ✕
+            </button>
+
+            {/* ENCABEZADO DEL MODAL */}
+            <div className="w-full text-left border-b border-gray-100 pb-3 mb-4 pr-12">
+              <span className="text-xs font-black text-orange-500 uppercase tracking-wider block">Vista de Producto</span>
+              <h3 className="text-lg font-extrabold text-blue-900">Código: {imagenModal.codigo}</h3>
+            </div>
+
+            {/* CONTENEDOR DE LA IMAGEN AMPLIADA */}
+            <div className="relative w-full h-[60vh] sm:h-[70vh] bg-gray-50 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center">
+              <Image
+                src={imagenModal.url}
+                alt={imagenModal.codigo}
+                fill={true}
+                className="object-contain p-4"
+                unoptimized={true}
+              />
+            </div>
+            
+            <p className="text-xs text-gray-400 mt-3 font-medium">
+              Haz clic fuera o presiona la X para cerrar
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         
         {/* ENCABEZADO */}
@@ -224,82 +245,21 @@ export default function ControlFuerzaPage() {
           </div>
         </div>
 
-        {/* TABLA GUÍA TÉCNICA */}
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-10 mb-16">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-              Guía Técnica de Equipos de Control y Distribución
-            </h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Selecciona una categoría técnica para revisar rangos de capacidad y usos.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
-            {tiposControlFuerza.map((tipo) => (
-              <button
-                key={tipo.id}
-                onClick={() => setTipoActivo(tipo.id)}
-                className={`px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm ${
-                  tipoActivo === tipo.id 
-                    ? 'bg-blue-900 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {tipo.nombre}
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs font-bold text-orange-500 uppercase tracking-wider block mb-1">Uso Recomendado</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.uso}</p>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-blue-900 uppercase tracking-wider block mb-1">Compatibilidad y Normativa</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.norma}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-blue-950 text-white text-xs uppercase">
-                <tr>
-                  <th className="py-3.5 px-4 font-extrabold">Equipo / Familia</th>
-                  <th className="py-3.5 px-4 font-extrabold">Rangos / Capacidades</th>
-                  <th className="py-3.5 px-4 font-extrabold">Aplicación Típica</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {tipoSeleccionado.medidas.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-blue-900">{item.modelo}</td>
-                    <td className="py-3.5 px-4 font-bold text-orange-600">{item.capacidad}</td>
-                    <td className="py-3.5 px-4 text-gray-800">{item.usoComun}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* TARJETAS INTERACTIVAS */}
+        {/* TARJETAS INTERACTIVAS COMPACTAS (CATÁLOGO DIRECTO) */}
         <div className="mb-16">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              Catálogo de Control y Fuerza
+              Equipos de Control y Fuerza
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-blue-900 mt-3">
-              Equipos y Accesorios de Maniobra
+              Gama Completa de Protección y Maniobra
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              Haz clic sobre la tarjeta para consultar rangos de amperaje, bobinas y especificaciones.
+              Haz clic en la imagen para verla en pantalla completa, o en el texto para girar la tarjeta.
             </p>
           </div>
 
+          {/* FILTRO DE CATEGORÍAS */}
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
             {categoriasControl.map((cat) => (
               <button
@@ -316,66 +276,126 @@ export default function ControlFuerzaPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {accesoriosFiltrados.map((item) => {
-              const isFlipped = flippedCards[item.id] || false;
-              return (
-                <div 
-                  key={item.id}
-                  onClick={() => toggleFlip(item.id)}
-                  className="h-[420px] w-full cursor-pointer [perspective:1000px] group"
-                >
-                  <div className={`relative h-full w-full rounded-2xl shadow-md transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                    
-                    {/* FRENTE OPTIMIZADO PARA IMÁGENES 1024x1024 */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-white p-4 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
-                      <div className="w-full aspect-square bg-gray-50 rounded-xl relative overflow-hidden border border-gray-100 flex items-center justify-center p-2">
-                        <Image 
-                          src={item.imagen} 
-                          alt={item.nombre} 
-                          fill={true} 
-                          className="object-contain p-1" 
-                          unoptimized={true}
-                        />
-                      </div>
-                      <div className="text-center my-auto px-1">
-                        <h3 className="text-base font-extrabold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2">
-                          {item.nombre}
-                        </h3>
-                        <p className="text-[11px] text-gray-500 mt-1">Haz clic para ver ficha 🔄</p>
-                      </div>
-                    </div>
+          {/* ESTADO CARGANDO / SIN PRODUCTOS */}
+          {cargando ? (
+            <div className="text-center py-16">
+              <p className="text-lg font-bold text-blue-900 animate-pulse">Cargando equipos de control y fuerza...</p>
+            </div>
+          ) : productosFiltrados.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200">
+              <p className="text-gray-500 font-semibold">No hay productos registrados en esta categoría aún.</p>
+            </div>
+          ) : (
+            /* RETÍCULA DE TARJETAS COMPACTAS */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+              {productosFiltrados.map((item) => {
+                const isFlipped = flippedCards[item.id] || false;
+                const codigoClave = item.codigo ? item.codigo.trim().toUpperCase() : '';
+                
+                // Mapeo con fallback hacia la descripción propia del producto
+                const invData = datosInventario[codigoClave];
+                const descripcionReverso = (invData && invData.descripcion && invData.descripcion.trim() !== '')
+                  ? invData.descripcion
+                  : item.descripcion;
 
-                    {/* REVERSO */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-blue-950 p-6 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
-                      <div>
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Ficha Técnica</span>
-                          <span className="text-xs text-gray-400">🔄 Volver</span>
+                const precioFinal = invData ? invData.precio : 0;
+                const existenciasFinales = invData ? invData.existencias : 0;
+
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => toggleFlip(item.id)}
+                    className="h-56 w-full cursor-pointer [perspective:1000px] group"
+                  >
+                    <div className={`relative h-full w-full rounded-xl shadow-sm transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+                      
+                      {/* FRENTE DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
+                        
+                        {/* CONTENEDOR DE IMAGEN (ABRE EL POP-UP AL DAR CLIC) */}
+                        <div 
+                          onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
+                          className="w-full h-24 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors"
+                          title="Haz clic para ampliar imagen"
+                        >
+                          <Image 
+                            src={item.imagen_url} 
+                            alt={item.codigo} 
+                            fill={true} 
+                            className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
+                            unoptimized={true}
+                          />
+                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
+                            🔍 Ampliar
+                          </span>
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">{item.nombre}</h3>
-                        <p className="text-xs text-gray-300 mb-4 leading-relaxed">
-                          {item.descripcion}
-                        </p>
+
+                        {/* TEXTO DE LA TARJETA (HACER CLIC AQUÍ GIRA LA TARJETA) */}
+                        <div className="text-center w-full mt-1">
+                          <span className="text-[9px] font-black text-orange-500 uppercase tracking-wider block truncate">
+                            CÓD: {item.codigo}
+                          </span>
+                          <h3 className="text-xs font-bold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-0.5 leading-tight" title={item.descripcion}>
+                            {item.descripcion}
+                          </h3>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Girar Ficha 🔄</p>
+                        </div>
                       </div>
 
-                      <div className="border-t border-blue-900 pt-3 space-y-2">
+                      {/* REVERSO DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
                         <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Capacidades / Polos:</span>
-                          <span className="text-xs font-bold text-orange-400">{item.medidas}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Especificación / Voltaje:</span>
-                          <span className="text-xs font-bold text-gray-200">{item.material}</span>
-                        </div>
-                      </div>
-                    </div>
+                          <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
+                            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
+                              CÓD: {item.codigo}
+                            </span>
+                            <span className="text-[9px] text-gray-400">🔄</span>
+                          </div>
+                          
+                          <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
+                            {descripcionReverso}
+                          </p>
 
+                          {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
+                          <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
+                            {item.mostrar_precio && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
+                                <span className="text-xs font-black text-orange-400">
+                                  ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
+                                </span>
+                              </div>
+                            )}
+
+                            {item.mostrar_existencias && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
+                                <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {formatearExistencias(existenciasFinales, item.unidad_medida)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* BOTÓN WHATSAPP COMPACTO */}
+                        <a
+                          href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
+                        >
+                          Cotizar WhatsApp
+                        </a>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* COTIZADOR */}

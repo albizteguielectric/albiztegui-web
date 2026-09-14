@@ -1,144 +1,196 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 
-// 1. Datos para la Guía Técnica
-const tiposPlacasApagadores = [
-  {
-    id: 'linea-tradicional',
-    nombre: 'Línea Tradicional y Decorato (Eaton / Leviton)',
-    uso: 'Mecanismos estándar intercambiables para casas, oficinas y comercios.',
-    norma: 'Compatibilidad con caja 2x4 estándar, terminales de tornillo con mordaza y plástico autoextinguible.',
-    medidas: [
-      { modelo: 'Apagadores de Palanquita y Tomacorrientes', capacidad: '15A / 125V~ (Sencillos, Escalera y Dúplex)', usoComun: 'Instalaciones eléctricas estándar' },
-      { modelo: 'Módulos Tipo Decorato (Eaton / Leviton)', capacidad: '15A a 20A / 125V~ (Línea Rectangular)', usoComun: 'Residencias y proyectos modernos' },
-      { modelo: 'Contactos GFCI (Falla a Tierra)', capacidad: '15A / 20A con botón de Test/Reset', usoComun: 'Baños, cocinas y áreas húmedas' }
-    ]
-  },
-  {
-    id: 'tapas-marcos',
-    nombre: 'Placas y Tapas de Registro (2x4, 4x4, 4x6)',
-    uso: 'Cubiertas de protección y acabado estético para cajas galvanizadas o plásticas.',
-    norma: 'Troquelado estándar para 1, 2 y 3 ventanas en formato palanca o Decorato.',
-    medidas: [
-      { modelo: 'Placas 2x4 (1, 2 y 3 Ventanas)', capacidad: 'Plástico de alto impacto / Nylon irrompible', usoComun: 'Cajas de muro tradicionales' },
-      { modelo: 'Placas 4x4 Dobles', capacidad: 'Capacidad para 2 a 4 módulos', usoComun: 'Puntos de alta concentración de contactos' },
-      { modelo: 'Placas 4x6 de 3 Ventanas Decorato', capacidad: 'Formato amplio para 3 dispositivos Decorato', usoComun: 'Control centralizado de alumbrado' }
-    ]
-  },
-  {
-    id: 'linea-lucek-basica-premium',
-    nombre: 'Línea Arquitectónica Básica y Premium (Lucek)',
-    uso: 'Placas completas y modulares de diseño contemporáneo con fácil ensamble a presión.',
-    norma: 'Chasis de acero galvanizado interior con placas de policarbonato o aluminio.',
-    medidas: [
-      { modelo: 'Línea Básica Lucek', capacidad: '15A / 125V~ (Blanco y Marfil clásico)', usoComun: 'Remodelaciones de presupuesto accesible' },
-      { modelo: 'Línea Premium Lucek', capacidad: 'Acabados Aluminio, Cepillado y Titanio', usoComun: 'Casas modernas y oficinas corporativas' },
-      { modelo: 'Módulos Especiales (USB / RJ45 / TV)', capacidad: 'Carga rápida 2.1A / 3.0A USB-A y Tipo C', usoComun: 'Recámaras y escritorios de trabajo' }
-    ]
-  },
-  {
-    id: 'linea-lucek-flat-cristal',
-    nombre: 'Línea de Lujo: Flat y Cristal Templado (Lucek)',
-    uso: 'Acabados arquitectónicos de alta gama para interiores elegantes.',
-    norma: 'Frente de cristal templado inalterable contra rayaduras e iluminación nocturna LED.',
-    medidas: [
-      { modelo: 'Línea Flat (Extraplana)', capacidad: 'Botón amplio al ras de muro', usoComun: 'Espacios de arquitectura minimalista' },
-      { modelo: 'Línea Cristal Templado (Blanco / Negro / Plata)', capacidad: 'Placa de cristal de 4mm refractario', usoComun: 'Residencias de lujo y hoteles' },
-      { modelo: 'Apagadores Táctiles (Touch)', capacidad: 'Mando touch capacitivo con luz guía', usoComun: 'Proyectos de automatización' }
-    ]
-  }
-]
-
-// 2. Sub-Pestañas de Categorías
+// Sub-Pestañas de Filtrado para Placas y Apagadores
 const categoriasPlacas = [
-  { id: 'tradicional-eaton', nombre: 'Tradicional y Decorato (Eaton/Leviton)' },
-  { id: 'tapas-registro', nombre: 'Placas y Tapas (2x4, 4x4, 4x6)' },
-  { id: 'lucek-basica-premium', nombre: 'Lucek Básica y Premium' },
-  { id: 'lucek-flat-cristal', nombre: 'Lucek Flat y Cristal' }
+  { id: 'Todas', nombre: 'Todas' },
+  { id: 'ARMADAS', nombre: 'Placas Armadas' },
+  { id: 'MODULOS', nombre: 'Módulos e Interruptores' },
+  { id: 'PLACAS', nombre: 'Placas y Tapas Solas' },
+  { id: 'ACCESORIOS', nombre: 'Chasis y Accesorios' }
 ]
 
-// 3. Tarjetas Interactivas de Productos
-const accesorios = [
-  // --- CATEGORÍA 1: TRADICIONAL (EATON / LEVITON) ---
-  {
-    id: 1,
-    categoriaId: 'tradicional-eaton',
-    nombre: 'Apagadores y Tomacorrientes Tradicionales',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/tomas-sensillas.jpg',
-    descripcion: 'Módulos individuales de palanquita y contactos dobles para reemplazo en instalaciones estándar.',
-    medidas: 'Apagadores Sencillos / 3 Vías (Escalera) | Contactos Dúplex 15A 125V~',
-    material: 'Cuerpo de Termoplástico y Contactos de Latón'
-  },
-  {
-    id: 2,
-    categoriaId: 'tradicional-eaton',
-    nombre: 'Módulos Decorativos Tipo Decorato (Eaton / Leviton)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/tomas-decorato.jpg',
-    descripcion: 'Dispositivos de botón plano estilo Decorato, dimmers y tomas de corriente reforzadas para placa rectangular.',
-    medidas: '15A y 20A / 125V~ (Formatos Sencillos, Dúplex y Atenuadores)',
-    material: 'Policarbonato de Alta Resistencia al Impacto'
-  },
+interface ProductoPlacas {
+  id: number
+  codigo: string
+  descripcion: string
+  categoria: string
+  subcategoria: string
+  imagen_url: string
+  mostrar_precio: boolean
+  mostrar_existencias: boolean
+  unidad_medida?: string
+}
 
-  // --- CATEGORÍA 2: TAPAS Y PLACAS ---
-  {
-    id: 3,
-    categoriaId: 'tapas-registro',
-    nombre: 'Placas de Plástico y Nylon (2X4 y 4X4)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/tapas-registro.jpg',
-    descripcion: 'Tapas de acabado para cajas metálicas de registro en formato palanca tradicional, contacto o Decorato.',
-    medidas: '2x4 (1, 2 y 3 Mod/Ventanas) | 4x4 Dobles',
-    material: 'Nylon Irrompible / Plástico ABS en Blanco y Marfil'
-  },
-  {
-    id: 4,
-    categoriaId: 'tapas-registro',
-    nombre: 'Placas Especiales 4X6 de 3 Ventanas Decorato',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/placas-especiales.jpg',
-    descripcion: 'Tapas de gran formato diseñadas para albergar hasta 3 dispositivos tipo Decorato en un solo punto de control.',
-    medidas: 'Formato 4x6 pulgadas (3 Ventanas Decorato amplia)',
-    material: 'Plástico Reforzado Acabado Mate / Brillante'
-  },
-
-  // --- CATEGORÍA 3: LUCEK BÁSICA Y PREMIUM ---
-  {
-    id: 5,
-    categoriaId: 'lucek-basica-premium',
-    nombre: 'Placas Armadas Lucek Básica y Premium',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/basica-premium.jpg',
-    descripcion: 'Juegos de placa y chasis completo listos para instalar. Disponibles con combinaciones de apagadores, contactos y USB.',
-    medidas: 'Línea Básica (Blanco/Marfil) y Línea Premium (Aluminio/Acero)',
-    material: 'Chasis de Acero con Frente de Policarbonato / Aluminio'
-  },
-
-  // --- CATEGORÍA 4: LUCEK FLAT Y CRISTAL ---
-  {
-    id: 6,
-    categoriaId: 'lucek-flat-cristal',
-    nombre: 'Placas Lucek Línea Flat y Cristal Templado',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/flat-cristal.jpg',
-    descripcion: 'Placas arquitectónicas de lujo. Opción Flat ultra plana u opción Cristal Templado con apagadores capacitivos o mecánicos.',
-    medidas: 'Formato Estándar 2X4 (Cristal Blanco, Negro y Plata)',
-    material: 'Frente de Cristal Templado de 4mm / Botones Metalizados'
-  }
-]
+interface DatosInventario {
+  codigo: string
+  descripcion: string 
+  precio: number
+  existencias: number
+}
 
 export default function PlacasApagadoresPage() {
-  const [tipoActivo, setTipoActivo] = useState(tiposPlacasApagadores[0].id)
-  const [catAccesorioActiva, setCatAccesorioActiva] = useState(categoriasPlacas[0].id)
+  const [catAccesorioActiva, setCatAccesorioActiva] = useState('Todas')
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>({})
+  
+  // Estado para controlar la imagen abierta en el Pop-up / Modal
+  const [imagenModal, setImagenModal] = useState<{ url: string; codigo: string } | null>(null)
+
+  // Estados dinámicos de Supabase
+  const [productos, setProductos] = useState<ProductoPlacas[]>([])
+  const [datosInventario, setDatosInventario] = useState<Record<string, DatosInventario>>({})
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    const fetchProductos = async () => {
+      // 1. Cargar catálogo de productos_placas ordenados alfabéticamente por descripción
+      const { data: prods, error } = await supabase
+        .from('productos_placas')
+        .select('*')
+        .order('descripcion', { ascending: true })
+
+      if (!active) return
+
+      if (error) {
+        console.error('Error al cargar productos_placas:', error.message || error)
+        setCargando(false)
+        return
+      }
+
+      if (prods && prods.length > 0) {
+        setProductos(prods)
+
+        // 2. Extraer códigos limpios en mayúsculas
+        const codigosLimpios = Array.from(
+          new Set(
+            prods
+              .map(p => (p.codigo ? p.codigo.trim().toUpperCase() : ''))
+              .filter(c => c.length > 0)
+          )
+        )
+
+        // 3. Consultar la tabla "productos" para sincronizar precios y stock
+        if (codigosLimpios.length > 0) {
+          const { data: invData, error: invError } = await supabase
+            .from('productos')
+            .select('codigo, descripcion, precio, existencias')
+            .in('codigo', codigosLimpios)
+
+          if (invError) {
+            console.error('Error al consultar tabla productos:', invError.message || invError)
+          }
+
+          if (active && invData) {
+            const mapInv: Record<string, DatosInventario> = {}
+            invData.forEach(item => {
+              if (item.codigo) {
+                mapInv[item.codigo.trim().toUpperCase()] = {
+                  codigo: item.codigo.trim().toUpperCase(),
+                  descripcion: item.descripcion || '',
+                  precio: Number(item.precio) || 0,
+                  existencias: Number(item.existencias) || 0
+                }
+              }
+            })
+            setDatosInventario(mapInv)
+          }
+        }
+      }
+
+      if (active) {
+        setCargando(false)
+      }
+    }
+
+    fetchProductos()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const toggleFlip = (id: number) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const tipoSeleccionado = tiposPlacasApagadores.find(t => t.id === tipoActivo) || tiposPlacasApagadores[0]
-  const accesoriosFiltrados = accesorios.filter(a => a.categoriaId === catAccesorioActiva)
+  const abrirImagenModal = (e: React.MouseEvent, url: string, codigo: string) => {
+    // Evita que la tarjeta gire al hacer clic sobre la imagen
+    e.stopPropagation()
+    setImagenModal({ url, codigo })
+  }
+
+  // Función para formatear las existencias según la unidad de medida
+  const formatearExistencias = (existencias: number, unidad?: string) => {
+    if (existencias <= 0) return 'Agotado'
+
+    const u = (unidad || 'pieza').toLowerCase()
+    let etiqueta = 'pza(s)'
+
+    if (u === 'metro' || u === 'm') etiqueta = 'm'
+    else if (u === 'kilogramo' || u === 'kg') etiqueta = 'kg'
+    else if (u === 'rollo') etiqueta = 'rollo(s)'
+    else if (u === 'caja') etiqueta = 'caja(s)'
+
+    return `${existencias} ${etiqueta}`
+  }
+
+  const productosFiltrados = catAccesorioActiva === 'Todas'
+    ? productos
+    : productos.filter(p => p.categoria === catAccesorioActiva || p.subcategoria === catAccesorioActiva)
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 pt-20">
+      
+      {/* MODAL POP-UP DE IMAGEN COMPLETA */}
+      {imagenModal && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+          onClick={() => setImagenModal(null)}
+        >
+          <div 
+            className="relative bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl overflow-hidden flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* BOTÓN DE CIERRE (X) */}
+            <button
+              type="button"
+              onClick={() => setImagenModal(null)}
+              className="absolute top-4 right-4 bg-gray-100 hover:bg-orange-500 hover:text-white text-gray-700 w-10 h-10 rounded-full flex items-center justify-center font-black text-lg transition-colors shadow-md z-10"
+              title="Cerrar vista previa"
+            >
+              ✕
+            </button>
+
+            {/* ENCABEZADO DEL MODAL */}
+            <div className="w-full text-left border-b border-gray-100 pb-3 mb-4 pr-12">
+              <span className="text-xs font-black text-orange-500 uppercase tracking-wider block">Vista de Producto</span>
+              <h3 className="text-lg font-extrabold text-blue-900">Código: {imagenModal.codigo}</h3>
+            </div>
+
+            {/* CONTENEDOR DE LA IMAGEN AMPLIADA */}
+            <div className="relative w-full h-[60vh] sm:h-[70vh] bg-gray-50 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center">
+              <Image
+                src={imagenModal.url}
+                alt={imagenModal.codigo}
+                fill={true}
+                className="object-contain p-4"
+                unoptimized={true}
+              />
+            </div>
+            
+            <p className="text-xs text-gray-400 mt-3 font-medium">
+              Haz clic fuera o presiona la X para cerrar
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         
         {/* ENCABEZADO */}
@@ -147,10 +199,10 @@ export default function PlacasApagadoresPage() {
             &larr; Volver al Inicio
           </Link>
           <h1 className="text-3xl sm:text-5xl font-black text-blue-900 tracking-tight">
-            Placas, Apagadores y Tomacorrientes
+            Placas, Apagadores y Contactos
           </h1>
           <p className="text-gray-600 text-base sm:text-lg mt-2">
-           Línea tradicional, placas 2x4, 4x4 y 4x6, formato Decorato (Eaton/Leviton) y líneas Lucek (Básica, Premium, Flat y Cristal).
+            Líneas completas de placas armadas, módulos combinables, tomacorrientes USB, dimmers y acabados arquitectónicos.
           </p>
         </div>
 
@@ -171,104 +223,43 @@ export default function PlacasApagadoresPage() {
 
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-block bg-orange-100 text-orange-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              Diseño y Conectividad
+              Estilo, Control y Conectividad
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-              Mecanismos Tradicionales y Arquitectura de Lujo
+              Mecanismos Residenciales y Comerciales
             </h2>
             <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
-              Contamos con todo el rango de accesorios para pared. Desde las tomas y palancas convencionales con sus tapas de registro hasta las líneas de cristal templado y botones planos de alta gama.
+              Ofrecemos soluciones integrales en mecanismos eléctricos: desde placas listas para instalar hasta sistemas modulares configurables en acabados blanco, marfil, acero inoxidable y cristal.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 pt-6">
               <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                <h3 className="font-bold text-blue-900 text-sm mb-1">✓ Marcas Líderes</h3>
-                <p className="text-xs text-gray-600">Disponibilidad de Eaton, Leviton y toda la familia Lucek.</p>
+                <h3 className="font-bold text-blue-900 text-sm mb-1">✓ Líneas Placas Armadas</h3>
+                <p className="text-xs text-gray-600">Juegos de 1, 2 y 3 ventanas con apagadores y contactos listos.</p>
               </div>
               <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100">
-                <h3 className="font-bold text-blue-900 text-sm mb-1">✓ Todas las Medidas de Tapas</h3>
-                <p className="text-xs text-gray-600">Línea tradicional, placas 2x4, 4x4 y 4x6, formato Decorato (Eaton/Leviton) y líneas Lucek (Básica, Premium, Flat y Cristal).</p>
+                <h3 className="font-bold text-blue-900 text-sm mb-1">✓ Módulos Especiales</h3>
+                <p className="text-xs text-gray-600">Contactos USB Type-C, RJ45 Cat6, atenuadores LED y sensores.</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* TABLA GUÍA TÉCNICA */}
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-10 mb-16">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-              Guía de Selección de Placas y Mecanismos
-            </h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Compara las características de cada línea de productos.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
-            {tiposPlacasApagadores.map((tipo) => (
-              <button
-                key={tipo.id}
-                onClick={() => setTipoActivo(tipo.id)}
-                className={`px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm ${
-                  tipoActivo === tipo.id 
-                    ? 'bg-blue-900 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {tipo.nombre}
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs font-bold text-orange-500 uppercase tracking-wider block mb-1">Aplicación Principal</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.uso}</p>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-blue-900 uppercase tracking-wider block mb-1">Compatibilidad y Materiales</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.norma}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-blue-950 text-white text-xs uppercase">
-                <tr>
-                  <th className="py-3.5 px-4 font-extrabold">Serie / Modelo</th>
-                  <th className="py-3.5 px-4 font-extrabold">Capacidad / Formato</th>
-                  <th className="py-3.5 px-4 font-extrabold">Uso Común</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {tipoSeleccionado.medidas.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-blue-900">{item.modelo}</td>
-                    <td className="py-3.5 px-4 font-bold text-orange-600">{item.capacidad}</td>
-                    <td className="py-3.5 px-4 text-gray-800">{item.usoComun}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* TARJETAS INTERACTIVAS */}
+        {/* TARJETAS INTERACTIVAS COMPACTAS (CATÁLOGO DIRECTO) */}
         <div className="mb-16">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              Catálogo de Mecanismos
+              Mecanismos Eléctricos
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-blue-900 mt-3">
-              Modelos y Estilos Disponibles
+              Catálogo de Mecanismos y Placas
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              Haz clic sobre la tarjeta para consultar especificaciones, acabados y formatos.
+              Haz clic en la imagen para verla en pantalla completa, o en el texto para girar la tarjeta.
             </p>
           </div>
 
+          {/* FILTRO DE CATEGORÍAS */}
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
             {categoriasPlacas.map((cat) => (
               <button
@@ -285,73 +276,133 @@ export default function PlacasApagadoresPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {accesoriosFiltrados.map((item) => {
-              const isFlipped = flippedCards[item.id] || false;
-              return (
-                <div 
-                  key={item.id}
-                  onClick={() => toggleFlip(item.id)}
-                  className="h-[420px] w-full cursor-pointer [perspective:1000px] group"
-                >
-                  <div className={`relative h-full w-full rounded-2xl shadow-md transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                    
-                    {/* FRENTE OPTIMIZADO PARA IMÁGENES 1024x1024 */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-white p-4 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
-                      <div className="w-full aspect-square bg-gray-50 rounded-xl relative overflow-hidden border border-gray-100 flex items-center justify-center p-2">
-                        <Image 
-                          src={item.imagen} 
-                          alt={item.nombre} 
-                          fill={true} 
-                          className="object-contain p-1" 
-                          unoptimized={true}
-                        />
-                      </div>
-                      <div className="text-center my-auto px-1">
-                        <h3 className="text-base font-extrabold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2">
-                          {item.nombre}
-                        </h3>
-                        <p className="text-[11px] text-gray-500 mt-1">Haz clic para ver ficha 🔄</p>
-                      </div>
-                    </div>
+          {/* ESTADO CARGANDO / SIN PRODUCTOS */}
+          {cargando ? (
+            <div className="text-center py-16">
+              <p className="text-lg font-bold text-blue-900 animate-pulse">Cargando catálogo de placas y apagadores...</p>
+            </div>
+          ) : productosFiltrados.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200">
+              <p className="text-gray-500 font-semibold">No hay productos registrados en esta categoría aún.</p>
+            </div>
+          ) : (
+            /* RETÍCULA DE TARJETAS COMPACTAS */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+              {productosFiltrados.map((item) => {
+                const isFlipped = flippedCards[item.id] || false;
+                const codigoClave = item.codigo ? item.codigo.trim().toUpperCase() : '';
+                
+                // Mapeo con fallback hacia la descripción propia del producto
+                const invData = datosInventario[codigoClave];
+                const descripcionReverso = (invData && invData.descripcion && invData.descripcion.trim() !== '')
+                  ? invData.descripcion
+                  : item.descripcion;
 
-                    {/* REVERSO */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-blue-950 p-6 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
-                      <div>
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Ficha Técnica</span>
-                          <span className="text-xs text-gray-400">🔄 Volver</span>
+                const precioFinal = invData ? invData.precio : 0;
+                const existenciasFinales = invData ? invData.existencias : 0;
+
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => toggleFlip(item.id)}
+                    className="h-56 w-full cursor-pointer [perspective:1000px] group"
+                  >
+                    <div className={`relative h-full w-full rounded-xl shadow-sm transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+                      
+                      {/* FRENTE DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
+                        
+                        {/* CONTENEDOR DE IMAGEN (ABRE EL POP-UP AL DAR CLIC) */}
+                        <div 
+                          onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
+                          className="w-full h-24 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors"
+                          title="Haz clic para ampliar imagen"
+                        >
+                          <Image 
+                            src={item.imagen_url} 
+                            alt={item.codigo} 
+                            fill={true} 
+                            className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
+                            unoptimized={true}
+                          />
+                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
+                            🔍 Ampliar
+                          </span>
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">{item.nombre}</h3>
-                        <p className="text-xs text-gray-300 mb-4 leading-relaxed">
-                          {item.descripcion}
-                        </p>
+
+                        {/* TEXTO DE LA TARJETA (HACER CLIC AQUÍ GIRA LA TARJETA) */}
+                        <div className="text-center w-full mt-1">
+                          <span className="text-[9px] font-black text-orange-500 uppercase tracking-wider block truncate">
+                            CÓD: {item.codigo}
+                          </span>
+                          <h3 className="text-xs font-bold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-0.5 leading-tight" title={item.descripcion}>
+                            {item.descripcion}
+                          </h3>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Girar Ficha 🔄</p>
+                        </div>
                       </div>
 
-                      <div className="border-t border-blue-900 pt-3 space-y-2">
+                      {/* REVERSO DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
                         <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Capacidades / Formatos:</span>
-                          <span className="text-xs font-bold text-orange-400">{item.medidas}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Materiales / Acabado:</span>
-                          <span className="text-xs font-bold text-gray-200">{item.material}</span>
-                        </div>
-                      </div>
-                    </div>
+                          <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
+                            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
+                              CÓD: {item.codigo}
+                            </span>
+                            <span className="text-[9px] text-gray-400">🔄</span>
+                          </div>
+                          
+                          <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
+                            {descripcionReverso}
+                          </p>
 
+                          {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
+                          <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
+                            {item.mostrar_precio && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
+                                <span className="text-xs font-black text-orange-400">
+                                  ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
+                                </span>
+                              </div>
+                            )}
+
+                            {item.mostrar_existencias && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
+                                <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {formatearExistencias(existenciasFinales, item.unidad_medida)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* BOTÓN WHATSAPP COMPACTO */}
+                        <a
+                          href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
+                        >
+                          Cotizar WhatsApp
+                        </a>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* COTIZADOR */}
         <div className="bg-gradient-to-r from-blue-950 to-blue-900 rounded-3xl p-8 sm:p-12 text-center text-white border-b-8 border-orange-500">
-          <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">¿Surtido de placas y apagadores para obras o desarrollos?</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">¿Surtidos completados para obra o proyectos de edificación?</h2>
           <p className="text-gray-300 text-sm sm:text-base max-w-2xl mx-auto mb-6">
-            Cotizamos paquetes completos de placas Lucek, Eaton y Leviton por volumen para viviendas, residenciales y proyectos comerciales.
+            Cotizamos paquetes por volumen en placas, módulos especiales, placas decorativas de cristal y soluciones de conectividad para desarrolladores e instaladores.
           </p>
           <Link 
             href="/contacto" 

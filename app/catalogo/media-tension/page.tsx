@@ -1,152 +1,195 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 
-// 1. Datos para la Guía Técnica de Media Tensión y Equipos
-const tiposMediaTension = [
-  {
-    id: 'transformadores-proteccion',
-    nombre: 'Transformadores y Protección Electromecánica',
-    uso: 'Transformación de voltaje para distribución en interiores y protección de sobrecorriente o descargas.',
-    norma: 'Aislamiento seco Clase F/H y equipos de maniobra normados por CFE.',
-    medidas: [
-      { modelo: 'Transformadores Secos de Aislamiento', capacidad: '3 kVA, 5 kVA, 10 kVA y 30 kVA (Monofásicos y Trifásicos)', usoComun: 'Alimentación de tableros de alumbrado, maquinaria y control interior' },
-      { modelo: 'Cortacircuito Fusible (Seccionador)', capacidad: 'Voltajes de operación en 15 kV, 27 kV y 38 kV', usoComun: 'Protección de ramales primarios y subestaciones' },
-      { modelo: 'Canillas de Reemplazo', capacidad: 'Tubos portafusible para 15 kV, 27 kV y 38 kV (100A / 200A)', usoComun: 'Repuesto operativo para cortacircuitos' },
-      { modelo: 'Apartarrayos Cerámicos / Poliméricos', capacidad: 'Protección para 12 kV, 21 kV y 30 kV (Óxido de Zinc)', usoComun: 'Drenado de sobrevoltajes por rayos o maniobra' }
-    ]
-  },
-  {
-    id: 'herrajes-aislamiento',
-    nombre: 'Herrajes Aéreos y Aislamiento',
-    uso: 'Sostenimiento mecánico, remate de líneas y aislamiento de conductores en redes aéreas de distribución.',
-    norma: 'Acero galvanizado por inmersión en caliente (CFE C8400) y aisladores bajo norma NFX/CFE.',
-    medidas: [
-      { modelo: 'Crucetas PT y PR (PT-200, PT-250, PR-200, PR-250)', capacidad: 'Perfiles de acero galvanizado CFE (2000mm y 2500mm)', usoComun: 'Soporte horizontal de líneas primarias y aisladores en poste' },
-      { modelo: 'Abrazaderas UL / UC y Soleras BD / RE', capacidad: 'Para postes de concreto y madera (Diversos diámetros)', usoComun: 'Fijación de crucetas y herrajes a poste' },
-      { modelo: 'Grapas y Remates (Rectos / Curvos / Ojo RE)', capacidad: 'Para cable ACSR / AAC (Calibres 1/0 a 4/0 AWG)', usoComun: 'Tensionamiento y retención de líneas aéreas' },
-      { modelo: 'Batidores de 1, 3 y 4 Vías', capacidad: 'Montaje de 1 a 4 carretes aisladores', usoComun: 'Soporte vertical de neutro o líneas secundarias' },
-      { modelo: 'Aisladores (Carrete / Tipo Poste / Suspensión)', capacidad: 'Aislamiento sintético y porcelana (15 kV a 35 kV)', usoComun: 'Soporte y aislamiento en crucetas y postes' }
-    ]
-  },
-  {
-    id: 'conectores-empalmes',
-    nombre: 'Conectores y Derivadores de Fuerza',
-    uso: 'Interconexión de conductores primarios, derivaciones de red y ensambles mecánicos de alta presión.',
-    norma: 'Aleaciones de aluminio/cobre de alta conductividad y tornillería galvanizada.',
-    medidas: [
-      { modelo: 'Conector Base Cuadrada y Derivadores Tipo T', capacidad: 'Para línea principal y bajadas a equipo', usoComun: 'Conexión rígida en estructuras de subestación' },
-      { modelo: 'Conectores Burndy y Pernos Doble Rosca', capacidad: 'Compresión e ingeniería de apriete contiguo', usoComun: 'Empalmes de alta confiabilidad' },
-      { modelo: 'Múltiple Mecánico (4, 6 y 8 Vías)', capacidad: 'Entradas para cable de potencia (Multi-perforado)', usoComun: 'Distribución en registros subterráneos o pedestales' },
-      { modelo: 'Grapa y Base RB', capacidad: 'Sujeción de conductor a aislamiento o soporte', usoComun: 'Retención mecánica en estructuras aéreas' }
-    ]
-  }
-]
-
-// 2. Sub-Pestañas de Categorías
+// Sub-Pestañas de Filtrado para Media Tensión
 const categoriasMediaTension = [
-  { id: 'transformadores-equipos', nombre: 'Transformadores y Protección' },
-  { id: 'herrajes-soporte', nombre: 'Herrajes y Aisladores' },
-  { id: 'conectores-fuerza', nombre: 'Conectores y Múltiples' }
+  { id: 'Todas', nombre: 'Todas' },
+  { id: 'TRANSFORMADORES', nombre: 'Transformadores y Protección' },
+  { id: 'HERRAJES Y AISLADORES', nombre: 'Herrajes y Aisladores' },
+  { id: 'CONECTORES DE FUERZA', nombre: 'Conectores y Múltiples' }
 ]
 
-// 3. Tarjetas Interactivas de Productos
-const accesorios = [
-  // --- CATEGORÍA 1: TRANSFORMADORES Y PROTECCIÓN ---
-  {
-    id: 1,
-    categoriaId: 'transformadores-equipos',
-    nombre: 'Transformadores Secos de Aislamiento (3, 5, 10 y 30 kVA)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/transformadores.jpg',
-    descripcion: 'Transformadores secos para uso comercial e industrial en interiores. Operación silenciosa, bajo mantenimiento y gabinete de protección metálico.',
-    medidas: 'Potencias de 3 kVA, 5 kVA, 10 kVA y 30 kVA (Tensiones primarias y secundarias a medida)',
-    material: 'Devanados de Cobre/Aluminio con Aislamiento Seco Clase F/H (Gabinete NEMA 1/3R)'
-  },
-  {
-    id: 2,
-    categoriaId: 'transformadores-equipos',
-    nombre: 'Cortacircuitos Fusible y Canillas (15 kV, 27 kV y 38 kV)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/canillas.jpg',
-    descripcion: 'Equipos de desconexión portafusible para protección contra sobrecorriente en transformadores y ramales.',
-    medidas: 'Cortacircuitos completos y Canillas de repuesto en clase 15 kV, 27 kV y 38 kV',
-    material: 'Aislante de Porcelana / Polímero y Tubo de Fibra de Vidrio'
-  },
-  {
-    id: 3,
-    categoriaId: 'transformadores-equipos',
-    nombre: 'Apartarrayos Cerámicos y Poliméricos',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/apartarrayos.jpg',
-    descripcion: 'Dispositivos de protección contra sobrevoltajes transitorios causados por rayos o maniobras de red.',
-    medidas: 'Tensiones de diseño para líneas de 12 kV, 21 kV y 30 kV',
-    material: 'Varistores de Óxido de Zinc (ZnO) en Cuerpo Cerámico / Polímeros'
-  },
+interface ProductoMediaTension {
+  id: number
+  codigo: string
+  descripcion: string
+  categoria: string
+  subcategoria: string
+  imagen_url: string
+  mostrar_precio: boolean
+  mostrar_existencias: boolean
+  unidad_medida?: string
+}
 
-  // --- CATEGORÍA 2: HERRAJES Y AISLADORES ---
-  {
-    id: 4,
-    categoriaId: 'herrajes-soporte',
-    nombre: 'Crucetas PT/PR, Abrazaderas y Herrajes de Galvanizado',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/abrazadera-re.jpg',
-    descripcion: 'Crucetas de paso (PT) y remate (PR) de 200 y 250 junto con elementos de sujeción en acero galvanizado para estructura de postes.',
-    medidas: 'Crucetas PT-200, PT-250, PR-200, PR-250 | Abrazaderas UL y UC | Soleras BD y RE | Batidores 1 a 4 vías',
-    material: 'Acero Galvanizado por Inmersión en Caliente (Norma CFE C8400)'
-  },
-  {
-    id: 5,
-    categoriaId: 'herrajes-soporte',
-    nombre: 'Grapas de Remate y Remates Rectos/Curvos',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/remates.jpg',
-    descripcion: 'Accesorios para remate y tensión de conductores aéreos de aluminio (ACSR/AAC) en postes de paso y remate.',
-    medidas: 'Grapas de remate ajustables y remates preformados/mecánicos rectos y curvos',
-    material: 'Aluminio de Alta Resistencia / Acero Galvanizado'
-  },
-  {
-    id: 6,
-    categoriaId: 'herrajes-soporte',
-    nombre: 'Aisladores (Carrete, Porcelana Tipo Poste y Sintéticos)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/ailadores.jpg',
-    descripcion: 'Cuerpos aislantes de alta resistencia dieléctrica y mecánica para aislamiento de líneas primarias y secundarias.',
-    medidas: 'Aisladores tipo carrete | Porcelana tipo poste | Sintético de suspensión (15 kV a 35 kV)',
-    material: 'Porcelana Vitrificada / Polímero de Silicón'
-  },
-
-  // --- CATEGORÍA 3: CONECTORES Y MÚLTIPLES ---
-  {
-    id: 7,
-    categoriaId: 'conectores-fuerza',
-    nombre: 'Conectores de Base Cuadrada, Derivadores T y Burndy',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/derivadores.jpg',
-    descripcion: 'Elementos de conexión eléctrica pesada para derivación de líneas, estructuras aéreas y subestaciones.',
-    medidas: 'Conector base cuadrada acero | Derivador T | Pernos doble rosca | Grapa/Base RB | Burndy',
-    material: 'Acero Galvanizado / Aleación de Aluminio y Cobre'
-  },
-  {
-    id: 8,
-    categoriaId: 'conectores-fuerza',
-    nombre: 'Múltiples Mecánicos de Distribución (4, 6 y 8 Vías)',
-    imagen: 'https://raw.githubusercontent.com/albizteguielectric/catalogo-electrico-imagenes/refs/heads/main/multiples-mecanicos.jpg',
-    descripcion: 'Bloques conectores múltiples aislados para distribución secundaria y media tensión en registros subterráneos.',
-    medidas: 'Formatos mecánicos de 4, 6 y 8 vías para amplio rango de calibres',
-    material: 'Cuerpo de Aluminio Aislado con Cubierta de EPDM'
-  }
-]
+interface DatosInventario {
+  codigo: string
+  descripcion: string 
+  precio: number
+  existencias: number
+}
 
 export default function MediaTensionPage() {
-  const [tipoActivo, setTipoActivo] = useState(tiposMediaTension[0].id)
-  const [catAccesorioActiva, setCatAccesorioActiva] = useState(categoriasMediaTension[0].id)
+  const [catAccesorioActiva, setCatAccesorioActiva] = useState('Todas')
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>({})
+  
+  // Estado para controlar la imagen abierta en el Pop-up / Modal
+  const [imagenModal, setImagenModal] = useState<{ url: string; codigo: string } | null>(null)
+
+  // Estados dinámicos de Supabase
+  const [productos, setProductos] = useState<ProductoMediaTension[]>([])
+  const [datosInventario, setDatosInventario] = useState<Record<string, DatosInventario>>({})
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    const fetchProductos = async () => {
+      // 1. Cargar catálogo de productos_media_tension ordenados alfabéticamente por descripción
+      const { data: prods, error } = await supabase
+        .from('productos_media_tension')
+        .select('*')
+        .order('descripcion', { ascending: true })
+
+      if (!active) return
+
+      if (error) {
+        console.error('Error al cargar productos_media_tension:', error.message || error)
+        setCargando(false)
+        return
+      }
+
+      if (prods && prods.length > 0) {
+        setProductos(prods)
+
+        // 2. Extraer códigos limpios en mayúsculas
+        const codigosLimpios = Array.from(
+          new Set(
+            prods
+              .map(p => (p.codigo ? p.codigo.trim().toUpperCase() : ''))
+              .filter(c => c.length > 0)
+          )
+        )
+
+        // 3. Consultar la tabla "productos" para sincronizar precios y stock
+        if (codigosLimpios.length > 0) {
+          const { data: invData, error: invError } = await supabase
+            .from('productos')
+            .select('codigo, descripcion, precio, existencias')
+            .in('codigo', codigosLimpios)
+
+          if (invError) {
+            console.error('Error al consultar tabla productos:', invError.message || invError)
+          }
+
+          if (active && invData) {
+            const mapInv: Record<string, DatosInventario> = {}
+            invData.forEach(item => {
+              if (item.codigo) {
+                mapInv[item.codigo.trim().toUpperCase()] = {
+                  codigo: item.codigo.trim().toUpperCase(),
+                  descripcion: item.descripcion || '',
+                  precio: Number(item.precio) || 0,
+                  existencias: Number(item.existencias) || 0
+                }
+              }
+            })
+            setDatosInventario(mapInv)
+          }
+        }
+      }
+
+      if (active) {
+        setCargando(false)
+      }
+    }
+
+    fetchProductos()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const toggleFlip = (id: number) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const tipoSeleccionado = tiposMediaTension.find(t => t.id === tipoActivo) || tiposMediaTension[0]
-  const accesoriosFiltrados = accesorios.filter(a => a.categoriaId === catAccesorioActiva)
+  const abrirImagenModal = (e: React.MouseEvent, url: string, codigo: string) => {
+    // Evita que la tarjeta gire al hacer clic sobre la imagen
+    e.stopPropagation()
+    setImagenModal({ url, codigo })
+  }
+
+  // Función para formatear las existencias según la unidad de medida
+  const formatearExistencias = (existencias: number, unidad?: string) => {
+    if (existencias <= 0) return 'Agotado'
+
+    const u = (unidad || 'pieza').toLowerCase()
+    let etiqueta = 'pza(s)'
+
+    if (u === 'metro' || u === 'm') etiqueta = 'm'
+    else if (u === 'kilogramo' || u === 'kg') etiqueta = 'kg'
+    else if (u === 'rollo') etiqueta = 'rollo(s)'
+    else if (u === 'caja') etiqueta = 'caja(s)'
+
+    return `${existencias} ${etiqueta}`
+  }
+
+  const productosFiltrados = catAccesorioActiva === 'Todas'
+    ? productos
+    : productos.filter(p => p.categoria === catAccesorioActiva || p.subcategoria === catAccesorioActiva)
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 pt-20">
+      
+      {/* MODAL POP-UP DE IMAGEN COMPLETA */}
+      {imagenModal && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+          onClick={() => setImagenModal(null)}
+        >
+          <div 
+            className="relative bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl overflow-hidden flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* BOTÓN DE CIERRE (X) */}
+            <button
+              type="button"
+              onClick={() => setImagenModal(null)}
+              className="absolute top-4 right-4 bg-gray-100 hover:bg-orange-500 hover:text-white text-gray-700 w-10 h-10 rounded-full flex items-center justify-center font-black text-lg transition-colors shadow-md z-10"
+              title="Cerrar vista previa"
+            >
+              ✕
+            </button>
+
+            {/* ENCABEZADO DEL MODAL */}
+            <div className="w-full text-left border-b border-gray-100 pb-3 mb-4 pr-12">
+              <span className="text-xs font-black text-orange-500 uppercase tracking-wider block">Vista de Producto</span>
+              <h3 className="text-lg font-extrabold text-blue-900">Código: {imagenModal.codigo}</h3>
+            </div>
+
+            {/* CONTENEDOR DE LA IMAGEN AMPLIADA */}
+            <div className="relative w-full h-[60vh] sm:h-[70vh] bg-gray-50 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center">
+              <Image
+                src={imagenModal.url}
+                alt={imagenModal.codigo}
+                fill={true}
+                className="object-contain p-4"
+                unoptimized={true}
+              />
+            </div>
+            
+            <p className="text-xs text-gray-400 mt-3 font-medium">
+              Haz clic fuera o presiona la X para cerrar
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         
         {/* ENCABEZADO */}
@@ -201,69 +244,7 @@ export default function MediaTensionPage() {
           </div>
         </div>
 
-        {/* TABLA GUÍA TÉCNICA */}
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-10 mb-16">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-              Guía Técnica de Materiales de Media Tensión
-            </h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Selecciona una familia para consultar los rangos de operación y especificaciones.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
-            {tiposMediaTension.map((tipo) => (
-              <button
-                key={tipo.id}
-                onClick={() => setTipoActivo(tipo.id)}
-                className={`px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm ${
-                  tipoActivo === tipo.id 
-                    ? 'bg-blue-900 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {tipo.nombre}
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs font-bold text-orange-500 uppercase tracking-wider block mb-1">Función en la Red</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.uso}</p>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-blue-900 uppercase tracking-wider block mb-1">Estándar y Materiales</span>
-                <p className="text-sm text-gray-800 font-medium">{tipoSeleccionado.norma}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-blue-950 text-white text-xs uppercase">
-                <tr>
-                  <th className="py-3.5 px-4 font-extrabold">Elemento / Producto</th>
-                  <th className="py-3.5 px-4 font-extrabold">Capacidad / Rango</th>
-                  <th className="py-3.5 px-4 font-extrabold">Aplicación en Estructura</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {tipoSeleccionado.medidas.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-blue-900">{item.modelo}</td>
-                    <td className="py-3.5 px-4 font-bold text-orange-600">{item.capacidad}</td>
-                    <td className="py-3.5 px-4 text-gray-800">{item.usoComun}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* TARJETAS INTERACTIVAS */}
+        {/* TARJETAS INTERACTIVAS COMPACTAS (CATÁLOGO DIRECTO) */}
         <div className="mb-16">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -273,10 +254,11 @@ export default function MediaTensionPage() {
               Equipos de Red y Herrajes
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              Haz clic sobre la tarjeta para consultar voltajes, materiales y tipos de montaje.
+              Haz clic en la imagen para verla en pantalla completa, o en el texto para girar la tarjeta.
             </p>
           </div>
 
+          {/* FILTRO DE CATEGORÍAS */}
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
             {categoriasMediaTension.map((cat) => (
               <button
@@ -293,66 +275,126 @@ export default function MediaTensionPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {accesoriosFiltrados.map((item) => {
-              const isFlipped = flippedCards[item.id] || false;
-              return (
-                <div 
-                  key={item.id}
-                  onClick={() => toggleFlip(item.id)}
-                  className="h-[420px] w-full cursor-pointer [perspective:1000px] group"
-                >
-                  <div className={`relative h-full w-full rounded-2xl shadow-md transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                    
-                    {/* FRENTE OPTIMIZADO PARA IMÁGENES 1024x1024 */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-white p-4 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
-                      <div className="w-full aspect-square bg-gray-50 rounded-xl relative overflow-hidden border border-gray-100 flex items-center justify-center p-2">
-                        <Image 
-                          src={item.imagen} 
-                          alt={item.nombre} 
-                          fill={true} 
-                          className="object-contain p-1" 
-                          unoptimized={true}
-                        />
-                      </div>
-                      <div className="text-center my-auto px-1">
-                        <h3 className="text-base font-extrabold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2">
-                          {item.nombre}
-                        </h3>
-                        <p className="text-[11px] text-gray-500 mt-1">Haz clic para ver ficha 🔄</p>
-                      </div>
-                    </div>
+          {/* ESTADO CARGANDO / SIN PRODUCTOS */}
+          {cargando ? (
+            <div className="text-center py-16">
+              <p className="text-lg font-bold text-blue-900 animate-pulse">Cargando productos de media tensión...</p>
+            </div>
+          ) : productosFiltrados.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200">
+              <p className="text-gray-500 font-semibold">No hay productos registrados en esta categoría aún.</p>
+            </div>
+          ) : (
+            /* RETÍCULA DE TARJETAS COMPACTAS */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+              {productosFiltrados.map((item) => {
+                const isFlipped = flippedCards[item.id] || false;
+                const codigoClave = item.codigo ? item.codigo.trim().toUpperCase() : '';
+                
+                // Mapeo con fallback hacia la descripción propia del producto
+                const invData = datosInventario[codigoClave];
+                const descripcionReverso = (invData && invData.descripcion && invData.descripcion.trim() !== '')
+                  ? invData.descripcion
+                  : item.descripcion;
 
-                    {/* REVERSO */}
-                    <div className="absolute inset-0 h-full w-full rounded-2xl bg-blue-950 p-6 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
-                      <div>
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Ficha Técnica</span>
-                          <span className="text-xs text-gray-400">🔄 Volver</span>
+                const precioFinal = invData ? invData.precio : 0;
+                const existenciasFinales = invData ? invData.existencias : 0;
+
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => toggleFlip(item.id)}
+                    className="h-56 w-full cursor-pointer [perspective:1000px] group"
+                  >
+                    <div className={`relative h-full w-full rounded-xl shadow-sm transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+                      
+                      {/* FRENTE DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
+                        
+                        {/* CONTENEDOR DE IMAGEN (ABRE EL POP-UP AL DAR CLIC) */}
+                        <div 
+                          onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
+                          className="w-full h-24 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors"
+                          title="Haz clic para ampliar imagen"
+                        >
+                          <Image 
+                            src={item.imagen_url} 
+                            alt={item.codigo} 
+                            fill={true} 
+                            className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
+                            unoptimized={true}
+                          />
+                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
+                            🔍 Ampliar
+                          </span>
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">{item.nombre}</h3>
-                        <p className="text-xs text-gray-300 mb-4 leading-relaxed">
-                          {item.descripcion}
-                        </p>
+
+                        {/* TEXTO DE LA TARJETA (HACER CLIC AQUÍ GIRA LA TARJETA) */}
+                        <div className="text-center w-full mt-1">
+                          <span className="text-[9px] font-black text-orange-500 uppercase tracking-wider block truncate">
+                            CÓD: {item.codigo}
+                          </span>
+                          <h3 className="text-xs font-bold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-0.5 leading-tight" title={item.descripcion}>
+                            {item.descripcion}
+                          </h3>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Girar Ficha 🔄</p>
+                        </div>
                       </div>
 
-                      <div className="border-t border-blue-900 pt-3 space-y-2">
+                      {/* REVERSO DE LA TARJETA */}
+                      <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
                         <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Capacidades / Voltajes:</span>
-                          <span className="text-xs font-bold text-orange-400">{item.medidas}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase text-gray-400 block">Materiales / Normativa:</span>
-                          <span className="text-xs font-bold text-gray-200">{item.material}</span>
-                        </div>
-                      </div>
-                    </div>
+                          <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
+                            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
+                              CÓD: {item.codigo}
+                            </span>
+                            <span className="text-[9px] text-gray-400">🔄</span>
+                          </div>
+                          
+                          <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
+                            {descripcionReverso}
+                          </p>
 
+                          {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
+                          <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
+                            {item.mostrar_precio && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
+                                <span className="text-xs font-black text-orange-400">
+                                  ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
+                                </span>
+                              </div>
+                            )}
+
+                            {item.mostrar_existencias && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
+                                <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {formatearExistencias(existenciasFinales, item.unidad_medida)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* BOTÓN WHATSAPP COMPACTO */}
+                        <a
+                          href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
+                        >
+                          Cotizar WhatsApp
+                        </a>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* COTIZADOR */}
