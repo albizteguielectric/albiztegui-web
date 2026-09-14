@@ -46,7 +46,7 @@ interface ProductoCatalogo {
 // 1. ESTRUCTURAS DE CATEGORÍAS Y SUBCATEGORÍAS PARA CADA SECCIÓN
 const ESTRUCTURAS_POR_CATALOGO: Record<string, Record<string, string[]>> = {
   tuberia: {
-    'TUBERIA Y ACCESORIOS': ['Galvanizado', 'PVC', 'Poliducto', 'Flexible'],
+    'TUBERIA': ['Galvanizado', 'PVC', 'Poliducto', 'Flexible'],
     'CONEXIONES RIGIDAS': [
       'Cople, Conector y Codo Galvanizado',
       'Cople, Conector y Codo PVC',
