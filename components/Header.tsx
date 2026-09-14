@@ -91,6 +91,13 @@ export default function Header() {
             Nosotros
           </Link>
           <Link
+            href="/marcas"
+            onClick={closeMenu}
+            className="block px-3 py-2 rounded-md hover:bg-gray-200 hover:text-orange-500 transition-colors"
+          >
+            Marcas
+          </Link>
+          <Link
             href="/sucursales"
             onClick={closeMenu}
             className="block px-3 py-2 rounded-md hover:bg-gray-200 hover:text-orange-500 transition-colors"
