@@ -8,10 +8,11 @@ import Link from 'next/link'
 // Sub-Pestañas de Filtrado para Tubería y Canalización
 const categoriasTuberia = [
   { id: 'Todas', nombre: 'Todas' },
-  { id: 'TUBERIA RIGIDA', nombre: 'Tubería Rígida (PVC/Galvanizado)' },
-  { id: 'TUBERIA FLEXIBLE', nombre: 'Tubería Flexible y Licuatite' },
-  { id: 'CONEXIONES', nombre: 'Conexiones y Coples' },
-  { id: 'ABRAZADERAS Y SOPORTERIA', nombre: 'Abrazaderas, Unicanal y Everest' }
+  { id: 'TUBERIA', nombre: 'Tubería' },
+  { id: 'CONEXIONES RIGIDAS', nombre: 'Conexiones Rígidas' },
+  { id: 'CONECTORES FLEXIBLES Y GLANDULAS', nombre: 'Conectores y Glándulas' },
+  { id: 'ABRAZADERAS', nombre: 'Abrazaderas' },
+  { id: 'PERFILES UNICANAL Y EVEREST', nombre: 'Unicanal y Everest' }
 ]
 
 interface ProductoTuberia {
