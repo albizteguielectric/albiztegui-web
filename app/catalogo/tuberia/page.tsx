@@ -311,88 +311,91 @@ export default function TuberiaPage() {
                   >
                     <div className={`relative h-full w-full rounded-xl shadow-sm transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
                       
-                      {/* FRENTE DE LA TARJETA */}
-                      <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-between">
-                        
-                        {/* CONTENEDOR DE IMAGEN (ABRE EL POP-UP AL DAR CLIC) */}
-                        <div 
-                          onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
-                          className="w-full h-24 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors"
-                          title="Haz clic para ampliar imagen"
-                        >
-                          <Image 
-                            src={item.imagen_url} 
-                            alt={item.codigo} 
-                            fill={true} 
-                            className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
-                            unoptimized={true}
-                          />
-                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
-                            🔍 Ampliar
-                          </span>
-                        </div>
-
-                        {/* TEXTO DE LA TARJETA (HACER CLIC AQUÍ GIRA LA TARJETA) */}
-                        <div className="text-center w-full mt-1">
-                          <span className="text-[9px] font-black text-orange-500 uppercase tracking-wider block truncate">
-                            CÓD: {item.codigo}
-                          </span>
-                          <h3 className="text-xs font-bold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-0.5 leading-tight" title={item.descripcion}>
-                            {item.descripcion}
-                          </h3>
-                          <p className="text-[10px] text-gray-400 mt-0.5">Girar Ficha 🔄</p>
-                        </div>
+                    {/* FRENTE DE LA TARJETA */}
+                    <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-center gap-2">
+                      
+                      {/* CONTENEDOR DE IMAGEN (MAYOR ALTURA Y PROPORCIÓN) */}
+                      <div 
+                        onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
+                        className="w-full h-28 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors cursor-pointer"
+                        title="Haz clic para ampliar imagen"
+                      >
+                        <Image 
+                          src={item.imagen_url} 
+                          alt={item.codigo} 
+                          fill={true} 
+                          className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
+                          unoptimized={true}
+                        />
+                        <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
+                          🔍 Ampliar
+                        </span>
                       </div>
 
-                      {/* REVERSO DE LA TARJETA */}
-                      <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
-                        <div>
-                          <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
-                            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
-                              CÓD: {item.codigo}
-                            </span>
-                            <span className="text-[9px] text-gray-400">🔄</span>
-                          </div>
-                          
-                          <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
-                            {descripcionReverso}
-                          </p>
-
-                          {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
-                          <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
-                            {item.mostrar_precio && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
-                                <span className="text-xs font-black text-orange-400">
-                                  ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
-                                </span>
-                              </div>
-                            )}
-
-                            {item.mostrar_existencias && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
-                                <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                  {formatearExistencias(existenciasFinales, item.unidad_medida)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* BOTÓN WHATSAPP COMPACTO */}
-                        <a
-                          href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
-                        >
-                          Cotizar WhatsApp
-                        </a>
+                      {/* TEXTO DE LA TARJETA (TAMAÑOS AUMENTADOS Y MEJOR ESPACIADO) */}
+                      <div className="text-center w-full px-1">
+                        <span className="text-xs font-black text-orange-500 uppercase tracking-wider block truncate">
+                          CÓD: {item.codigo}
+                        </span>
+                        <h3 className="text-sm font-extrabold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-1 leading-snug" title={item.descripcion}>
+                          {item.descripcion}
+                        </h3>
+                        <p className="text-xs font-semibold text-gray-400 mt-1 flex items-center justify-center gap-1">
+                          Girar Ficha 🔄
+                        </p>
                       </div>
 
                     </div>
+
+                    {/* REVERSO DE LA TARJETA */}
+                    <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
+                      <div>
+                        <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
+                          <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
+                            CÓD: {item.codigo}
+                          </span>
+                          <span className="text-[9px] text-gray-400">🔄</span>
+                        </div>
+                        
+                        <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
+                          {descripcionReverso}
+                        </p>
+
+                        {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
+                        <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
+                          {item.mostrar_precio && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
+                              <span className="text-xs font-black text-orange-400">
+                                ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
+                              </span>
+                            </div>
+                          )}
+
+                          {item.mostrar_existencias && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
+                              <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                {formatearExistencias(existenciasFinales, item.unidad_medida)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* BOTÓN WHATSAPP COMPACTO */}
+                      <a
+                        href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
+                      >
+                        Cotizar WhatsApp
+                      </a>
+                    </div>
+
+                  </div>
                   </div>
                 )
               })}
