@@ -46,7 +46,7 @@ interface ProductoCatalogo {
 // 1. ESTRUCTURAS DE CATEGORÍAS Y SUBCATEGORÍAS PARA CADA SECCIÓN
 const ESTRUCTURAS_POR_CATALOGO: Record<string, Record<string, string[]>> = {
   tuberia: {
-    'TUBERIA': ['Galvanizado', 'PVC', 'Poliducto', 'Flexible'],
+    'TUBERIA': ['Galvanizado', 'PVC', 'Poliducto', 'Flexible', 'Termocontractil'],
     'CONEXIONES RIGIDAS': [
       'Cople, Conector y Codo Galvanizado',
       'Cople, Conector y Codo PVC',
@@ -70,7 +70,7 @@ const ESTRUCTURAS_POR_CATALOGO: Record<string, Record<string, string[]>> = {
   cableado: {
     'CABLE': ['Cobre', 'Aluminio'],
     'CABLE ESPECIAL': ['Uso Rudo', 'POT / Duplex', 'Romex', 'Automotriz', 'Solar'],
-    'EMBOBINADO': ['Magneto', 'Cuñas', 'Espagetti', 'Barniz']
+    'EMBOBINADO': ['Magneto', 'Cuñas', 'Espagetti', 'Barniz', 'Cinta']
   },
   iluminacion: {
     'FOCOS': ['Focos LED', 'Focos Incandecentes', 'Focos tipo Vela y Bintage'],
@@ -117,11 +117,13 @@ const ESTRUCTURAS_POR_CATALOGO: Record<string, Record<string, string[]>> = {
     'TORNILLERIA': ['Taquetes', 'Tornillos', 'Terminales', 'Corbatas', 'Capuchones'],
     'ENERGIA': ['Baterias Alcalinas y Recargables', 'Inversores', 'Reguladores y UPS', 'Multiples y Extensiones'],
     'SMART HOME': ['Focos y Tomas', 'Camaras', 'Timbres'],
-    'AUDIO Y VIDEO': ['Cables RCA', 'Cables de Luz', 'Accesorios', 'Fusibles']
+    'AUDIO Y VIDEO': ['Cables RCA', 'Cables de Luz', 'Accesorios', 'Fusibles'],
+    'CINTAS ASILANTES':['Cinta Aislante', 'Vulcanizable y Maya', 'Precaucion', 'Doble Cara', 'Empaquetar']
   },
   productos_temporada: {
     'VENTILADORES Y CALENTONES': ['De techo y Piso', 'Calentones'],
-    'NAVIDAD': ['Luces', 'Inflables', 'Decoraciones']
+    'NAVIDAD': ['Luces', 'Inflables', 'Decoraciones'],
+    'ESPEJOS': ['Con Luz', 'Sin Luz']
   }
 }
 
