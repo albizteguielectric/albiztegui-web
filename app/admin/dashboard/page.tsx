@@ -180,6 +180,10 @@ export default function Dashboard() {
   // ESTADO PARA FILTRAR LA TABLA POR SUBCATEGORÍA
   const [filtroSubcategoriaTabla, setFiltroSubcategoriaTabla] = useState('TODAS')
 
+  // ESTADOS DE PAGINACIÓN PARA LA TABLA DEL DASHBOARD (30 productos por página)
+  const [paginaTabla, setPaginaTabla] = useState(1)
+  const elementosPorPagina = 30
+
   // ESTADOS DE CONTROL GLOBAL DE VISIBILIDAD EN LA SECCIÓN
   const [estadoPrecioGlobal, setEstadoPrecioGlobal] = useState(true)
   const [estadoStockGlobal, setEstadoStockGlobal] = useState(true)
@@ -214,10 +218,15 @@ export default function Dashboard() {
 
   const cargarProductosSeccion = async (tabId: string) => {
     const tabla = obtenerNombreTabla(tabId)
-    const { data } = await supabase.from(tabla).select('*').order('codigo', { ascending: true })
+    // Rango amplio para omitir el límite por defecto de Supabase de 100 filas
+    const { data } = await supabase
+      .from(tabla)
+      .select('*')
+      .range(0, 9999)
+      .order('codigo', { ascending: true })
+
     if (data) {
       setProductosLista(data)
-      // Detectar estado de visibilidad inicial basado en los primeros registros
       if (data.length > 0) {
         setEstadoPrecioGlobal(data.some(p => p.mostrar_precio))
         setEstadoStockGlobal(data.some(p => p.mostrar_existencias))
@@ -231,6 +240,8 @@ export default function Dashboard() {
   const cambiarPestanaCatalogo = (tabId: string) => {
     setActiveTab(tabId)
     setFiltroSubcategoriaTabla('TODAS')
+    setPaginaTabla(1)
+    
     const nuevaEstructura = ESTRUCTURAS_POR_CATALOGO[tabId] || ESTRUCTURAS_POR_CATALOGO['cableado']
     setEstructuraActual(nuevaEstructura)
     
@@ -519,6 +530,18 @@ export default function Dashboard() {
   const productosMostrarTabla = filtroSubcategoriaTabla === 'TODAS'
     ? productosLista
     : productosLista.filter(p => (p.subcategoria || '').trim().toLowerCase() === filtroSubcategoriaTabla.trim().toLowerCase())
+
+  // CÁLCULOS Y SLICE DE PAGINACIÓN DE LA TABLA
+  const totalPaginasTabla = Math.ceil(productosMostrarTabla.length / elementosPorPagina)
+  const indiceInicialTabla = (paginaTabla - 1) * elementosPorPagina
+  const indiceFinalTabla = indiceInicialTabla + elementosPorPagina
+  const productosPaginadosTabla = productosMostrarTabla.slice(indiceInicialTabla, indiceFinalTabla)
+
+  const cambiarPaginaTabla = (nuevaPagina: number) => {
+    if (nuevaPagina >= 1 && nuevaPagina <= totalPaginasTabla) {
+      setPaginaTabla(nuevaPagina)
+    }
+  }
 
   if (loading) {
     return (
@@ -860,29 +883,61 @@ export default function Dashboard() {
                 </div>
               </form>
 
-              {/* BARRA DE FILTRADO DE LA TABLA POR SUBCATEGORÍA */}
+              {/* BARRA DE FILTRADO DE LA TABLA Y CONTROL DE PAGINACIÓN */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-100 p-4 rounded-t-xl border border-gray-200 gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-extrabold text-blue-900 uppercase tracking-wider">Filtrar Tabla:</span>
-                  <select
-                    value={filtroSubcategoriaTabla}
-                    onChange={(e) => setFiltroSubcategoriaTabla(e.target.value)}
-                    className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
-                  >
-                    <option value="TODAS">Ver Todas las Subcategorías</option>
-                    {subcategoriasDisponibles.map((sub) => (
-                      <option key={sub} value={sub}>{sub}</option>
-                    ))}
-                  </select>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-extrabold text-blue-900 uppercase tracking-wider">Filtrar Tabla:</span>
+                    <select
+                      value={filtroSubcategoriaTabla}
+                      onChange={(e) => {
+                        setFiltroSubcategoriaTabla(e.target.value)
+                        setPaginaTabla(1)
+                      }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
+                    >
+                      <option value="TODAS">Ver Todas las Subcategorías</option>
+                      {subcategoriasDisponibles.map((sub) => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 
-                <span className="text-xs font-bold text-gray-500">
-                  Mostrando: <strong className="text-orange-600">{productosMostrarTabla.length}</strong> de {productosLista.length} productos
-                </span>
+                {/* NAVEGACIÓN RÁPIDA DE PÁGINAS ARRIBA */}
+                <div className="flex flex-wrap items-center justify-between sm:justify-end w-full sm:w-auto gap-3">
+                  <span className="text-xs font-bold text-gray-500">
+                    Mostrando <strong className="text-orange-600">{productosMostrarTabla.length > 0 ? indiceInicialTabla + 1 : 0}</strong> - <strong className="text-orange-600">{Math.min(indiceFinalTabla, productosMostrarTabla.length)}</strong> de <strong className="text-blue-900">{productosMostrarTabla.length}</strong>
+                  </span>
+
+                  {totalPaginasTabla > 1 && (
+                    <div className="flex items-center gap-1 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => cambiarPaginaTabla(paginaTabla - 1)}
+                        disabled={paginaTabla === 1}
+                        className="px-2 py-1 rounded bg-white border border-gray-200 text-blue-900 font-bold disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors"
+                      >
+                        &laquo;
+                      </button>
+                      <span className="font-bold text-blue-900 px-1">
+                        {paginaTabla}/{totalPaginasTabla}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => cambiarPaginaTabla(paginaTabla + 1)}
+                        disabled={paginaTabla === totalPaginasTabla}
+                        className="px-2 py-1 rounded bg-white border border-gray-200 text-blue-900 font-bold disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors"
+                      >
+                        &raquo;
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* TABLA DE PRODUCTOS */}
-              <div className="overflow-x-auto rounded-b-xl border border-t-0 border-gray-200 shadow-sm">
+              {/* TABLA DE PRODUCTOS (PAGINADA) */}
+              <div className="overflow-x-auto border border-t-0 border-gray-200 shadow-sm">
                 <table className="w-full text-left text-sm text-gray-700">
                   <thead className="bg-blue-950 text-white text-xs uppercase">
                     <tr>
@@ -895,14 +950,14 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {productosMostrarTabla.length === 0 ? (
+                    {productosPaginadosTabla.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-gray-500 font-medium">
                           No hay productos registrados en esta subcategoría.
                         </td>
                       </tr>
                     ) : (
-                      productosMostrarTabla.map((p) => (
+                      productosPaginadosTabla.map((p) => (
                         <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                           <td className="py-3 px-4 font-bold text-blue-900 flex items-center gap-3">
                             <div className="w-10 h-10 relative bg-gray-50 border rounded-lg p-1 flex items-center justify-center overflow-hidden">
@@ -948,6 +1003,52 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
+
+              {/* CONTROLES DE PAGINACIÓN INFERIORES */}
+              {totalPaginasTabla > 1 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center bg-gray-100 p-4 rounded-b-xl border border-t-0 border-gray-200 gap-3">
+                  <span className="text-xs font-bold text-gray-500">
+                    Página <strong className="text-blue-900">{paginaTabla}</strong> de <strong className="text-blue-900">{totalPaginasTabla}</strong>
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => cambiarPaginaTabla(paginaTabla - 1)}
+                      disabled={paginaTabla === 1}
+                      className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-bold text-blue-900 disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors shadow-sm"
+                    >
+                      &laquo; Anterior
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPaginasTabla }, (_, i) => i + 1).map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => cambiarPaginaTabla(num)}
+                          className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                            paginaTabla === num
+                              ? 'bg-orange-500 text-white shadow-md'
+                              : 'bg-white text-blue-900 hover:bg-orange-100 border border-gray-200'
+                          }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => cambiarPaginaTabla(paginaTabla + 1)}
+                      disabled={paginaTabla === totalPaginasTabla}
+                      className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-bold text-blue-900 disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors shadow-sm"
+                    >
+                      Siguiente &raquo;
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

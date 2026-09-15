@@ -46,14 +46,19 @@ export default function TuberiaPage() {
   const [datosInventario, setDatosInventario] = useState<Record<string, DatosInventario>>({})
   const [cargando, setCargando] = useState(true)
 
+  // ESTADOS DE PAGINACIÓN (30 Artículos por página)
+  const [paginaActual, setPaginaActual] = useState(1)
+  const elementosPorPagina = 30
+
   useEffect(() => {
     let active = true
 
     const fetchProductos = async () => {
-      // 1. Cargar catálogo de productos_tuberia ordenados alfabéticamente por descripción
+      // 1. Cargar catálogo de productos_tuberia omitiendo el límite por defecto de 100 filas
       const { data: prods, error } = await supabase
         .from('productos_tuberia')
         .select('*')
+        .range(0, 9999) // Permite extraer la totalidad de artículos sin el corte implícito de Supabase
         .order('codigo', { ascending: true })
 
       if (!active) return
@@ -81,6 +86,7 @@ export default function TuberiaPage() {
           const { data: invData, error: invError } = await supabase
             .from('productos')
             .select('codigo, descripcion, precio, existencias')
+            .range(0, 9999)
             .in('codigo', codigosLimpios)
 
           if (invError) {
@@ -121,7 +127,6 @@ export default function TuberiaPage() {
   }
 
   const abrirImagenModal = (e: React.MouseEvent, url: string, codigo: string) => {
-    // Evita que la tarjeta gire al hacer clic sobre la imagen
     e.stopPropagation()
     setImagenModal({ url, codigo })
   }
@@ -142,9 +147,45 @@ export default function TuberiaPage() {
     return `${existencias} ${etiqueta}`
   }
 
+  // Cambiar categoría y reiniciar a la página 1
+  const cambiarCategoriaFilter = (catId: string) => {
+    setCatAccesorioActiva(catId)
+    setPaginaActual(1)
+  }
+
+  // Lógica de Filtrado por Categoría / Subcategoría
   const productosFiltrados = catAccesorioActiva === 'Todas'
     ? productos
-    : productos.filter(p => p.categoria === catAccesorioActiva || p.subcategoria === catAccesorioActiva)
+    : productos.filter(p => {
+        const cat = (p.categoria || '').trim().toUpperCase()
+        const sub = (p.subcategoria || '').trim().toUpperCase()
+        const filtro = catAccesorioActiva.trim().toUpperCase()
+
+        if (filtro === 'TUBERIA') {
+          return cat === 'TUBERIA' || 
+                 cat === 'TUBERIA RIGIDA' || 
+                 cat === 'TUBERIA Y ACCESORIOS' || 
+                 sub === 'GALVANIZADO' || 
+                 sub === 'PVC' || 
+                 sub === 'POLIDUCTO' || 
+                 sub === 'FLEXIBLE'
+        }
+
+        return cat === filtro || sub === filtro
+      })
+
+  // CÁLCULO DE PAGINACIÓN SOBRE EL TOTAL DE FILTRADOS
+  const totalPaginas = Math.ceil(productosFiltrados.length / elementosPorPagina)
+  const indiceInicial = (paginaActual - 1) * elementosPorPagina
+  const indiceFinal = indiceInicial + elementosPorPagina
+  const productosPaginados = productosFiltrados.slice(indiceInicial, indiceFinal)
+
+  const cambiarPagina = (nuevaPagina: number) => {
+    if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
+      setPaginaActual(nuevaPagina)
+      window.scrollTo({ top: 600, behavior: 'smooth' })
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 pt-20">
@@ -262,11 +303,11 @@ export default function TuberiaPage() {
           </div>
 
           {/* FILTRO DE CATEGORÍAS */}
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6">
             {categoriasTuberia.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => setCatAccesorioActiva(cat.id)}
+                onClick={() => cambiarCategoriaFilter(cat.id)}
                 className={`px-4 py-2.5 rounded-lg font-extrabold text-xs sm:text-sm transition-all ${
                   catAccesorioActiva === cat.id
                     ? 'bg-orange-500 text-white shadow-md'
@@ -278,6 +319,37 @@ export default function TuberiaPage() {
             ))}
           </div>
 
+          {/* INFORMACIÓN DE REGISTROS Y PAGINACIÓN ARRIBA */}
+          {!cargando && productosFiltrados.length > 0 && (
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 px-2 text-xs font-bold text-gray-500 gap-2">
+              <span>
+                Mostrando <strong className="text-orange-500">{indiceInicial + 1}</strong> - <strong className="text-orange-500">{Math.min(indiceFinal, productosFiltrados.length)}</strong> de <strong className="text-blue-900">{productosFiltrados.length}</strong> artículos
+              </span>
+
+              {totalPaginas > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => cambiarPagina(paginaActual - 1)}
+                    disabled={paginaActual === 1}
+                    className="px-2.5 py-1 rounded bg-white border border-gray-200 text-blue-900 disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors"
+                  >
+                    &laquo; Anterior
+                  </button>
+                  <span className="px-2 text-blue-900">
+                    Página {paginaActual} de {totalPaginas}
+                  </span>
+                  <button
+                    onClick={() => cambiarPagina(paginaActual + 1)}
+                    disabled={paginaActual === totalPaginas}
+                    className="px-2.5 py-1 rounded bg-white border border-gray-200 text-blue-900 disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors"
+                  >
+                    Siguiente &raquo;
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ESTADO CARGANDO / SIN PRODUCTOS */}
           {cargando ? (
             <div className="text-center py-16">
@@ -288,118 +360,156 @@ export default function TuberiaPage() {
               <p className="text-gray-500 font-semibold">No hay productos registrados en esta categoría aún.</p>
             </div>
           ) : (
-            /* RETÍCULA DE TARJETAS COMPACTAS */
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-              {productosFiltrados.map((item) => {
-                const isFlipped = flippedCards[item.id] || false;
-                const codigoClave = item.codigo ? item.codigo.trim().toUpperCase() : '';
-                
-                // Mapeo con fallback hacia la descripción propia del producto
-                const invData = datosInventario[codigoClave];
-                const descripcionReverso = (invData && invData.descripcion && invData.descripcion.trim() !== '')
-                  ? invData.descripcion
-                  : item.descripcion;
+            <>
+              {/* RETÍCULA DE TARJETAS COMPACTAS (PAGINADAS A 30 POR VISTA) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                {productosPaginados.map((item) => {
+                  const isFlipped = flippedCards[item.id] || false;
+                  const codigoClave = item.codigo ? item.codigo.trim().toUpperCase() : '';
+                  
+                  const invData = datosInventario[codigoClave];
+                  const descripcionReverso = (invData && invData.descripcion && invData.descripcion.trim() !== '')
+                    ? invData.descripcion
+                    : item.descripcion;
 
-                const precioFinal = invData ? invData.precio : 0;
-                const existenciasFinales = invData ? invData.existencias : 0;
+                  const precioFinal = invData ? invData.precio : 0;
+                  const existenciasFinales = invData ? invData.existencias : 0;
 
-                return (
-                  <div 
-                    key={item.id}
-                    onClick={() => toggleFlip(item.id)}
-                    className="h-56 w-full cursor-pointer [perspective:1000px] group"
-                  >
-                    <div className={`relative h-full w-full rounded-xl shadow-sm transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                      
-                    {/* FRENTE DE LA TARJETA */}
-                    <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-center gap-2">
-                      
-                      {/* CONTENEDOR DE IMAGEN (MAYOR ALTURA Y PROPORCIÓN) */}
-                      <div 
-                        onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
-                        className="w-full h-28 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors cursor-pointer"
-                        title="Haz clic para ampliar imagen"
-                      >
-                        <Image 
-                          src={item.imagen_url} 
-                          alt={item.codigo} 
-                          fill={true} 
-                          className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
-                          unoptimized={true}
-                        />
-                        <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
-                          🔍 Ampliar
-                        </span>
-                      </div>
-
-                      {/* TEXTO DE LA TARJETA (TAMAÑOS AUMENTADOS Y MEJOR ESPACIADO) */}
-                      <div className="text-center w-full px-1">
-                        <span className="text-xs font-black text-orange-500 uppercase tracking-wider block truncate">
-                          CÓD: {item.codigo}
-                        </span>
-                        <h3 className="text-sm font-extrabold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-1 leading-snug" title={item.descripcion}>
-                          {item.descripcion}
-                        </h3>
-                        <p className="text-xs font-semibold text-gray-400 mt-1 flex items-center justify-center gap-1">
-                          Girar Ficha 🔄
-                        </p>
-                      </div>
-
-                    </div>
-
-                    {/* REVERSO DE LA TARJETA */}
-                    <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
-                      <div>
-                        <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
-                          <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
-                            CÓD: {item.codigo}
-                          </span>
-                          <span className="text-[9px] text-gray-400">🔄</span>
-                        </div>
+                  return (
+                    <div 
+                      key={item.id}
+                      onClick={() => toggleFlip(item.id)}
+                      className="h-56 w-full cursor-pointer [perspective:1000px] group"
+                    >
+                      <div className={`relative h-full w-full rounded-xl shadow-sm transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
                         
-                        <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
-                          {descripcionReverso}
-                        </p>
+                        {/* FRENTE DE LA TARJETA */}
+                        <div className="absolute inset-0 h-full w-full rounded-xl bg-white p-3 border border-gray-200 [backface-visibility:hidden] flex flex-col items-center justify-center gap-2">
+                          
+                          {/* CONTENEDOR DE IMAGEN */}
+                          <div 
+                            onClick={(e) => abrirImagenModal(e, item.imagen_url, item.codigo)}
+                            className="w-full h-28 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-100 flex items-center justify-center p-1 group/img hover:border-orange-400 transition-colors cursor-pointer"
+                            title="Haz clic para ampliar imagen"
+                          >
+                            <Image 
+                              src={item.imagen_url} 
+                              alt={item.codigo} 
+                              fill={true} 
+                              className="object-contain w-full h-full group-hover/img:scale-105 transition-transform" 
+                              unoptimized={true}
+                            />
+                            <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
+                              🔍 Ampliar
+                            </span>
+                          </div>
 
-                        {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
-                        <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
-                          {item.mostrar_precio && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
-                              <span className="text-xs font-black text-orange-400">
-                                ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
-                              </span>
-                            </div>
-                          )}
+                          {/* TEXTO DE LA TARJETA */}
+                          <div className="text-center w-full px-1">
+                            <span className="text-xs font-black text-orange-500 uppercase tracking-wider block truncate">
+                              CÓD: {item.codigo}
+                            </span>
+                            <h3 className="text-sm font-extrabold text-blue-900 group-hover:text-orange-500 transition-colors line-clamp-2 mt-1 leading-snug" title={item.descripcion}>
+                              {item.descripcion}
+                            </h3>
+                            <p className="text-xs font-semibold text-gray-400 mt-1 flex items-center justify-center gap-1">
+                              Girar Ficha 🔄
+                            </p>
+                          </div>
 
-                          {item.mostrar_existencias && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
-                              <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                {formatearExistencias(existenciasFinales, item.unidad_medida)}
-                              </span>
-                            </div>
-                          )}
                         </div>
+
+                        {/* REVERSO DE LA TARJETA */}
+                        <div className="absolute inset-0 h-full w-full rounded-xl bg-blue-950 p-3 text-white [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-between border-2 border-orange-500">
+                          <div>
+                            <div className="flex justify-between items-center mb-1 border-b border-blue-900 pb-1">
+                              <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider truncate">
+                                CÓD: {item.codigo}
+                              </span>
+                              <span className="text-[9px] text-gray-400">🔄</span>
+                            </div>
+                            
+                            <p className="text-[10px] text-gray-200 mb-2 leading-tight line-clamp-3" title={descripcionReverso}>
+                              {descripcionReverso}
+                            </p>
+
+                            {/* PRECIO Y STOCK DINÁMICO */}
+                            <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
+                              {item.mostrar_precio && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[9px] text-gray-400 font-bold uppercase">Precio:</span>
+                                  <span className="text-xs font-black text-orange-400">
+                                    ${precioFinal > 0 ? precioFinal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
+                                  </span>
+                                </div>
+                              )}
+
+                              {item.mostrar_existencias && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[9px] text-gray-400 font-bold uppercase">Stock:</span>
+                                  <span className={`text-[10px] font-extrabold ${existenciasFinales > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {formatearExistencias(existenciasFinales, item.unidad_medida)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* BOTÓN WHATSAPP COMPACTO */}
+                          <a
+                            href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
+                          >
+                            Cotizar WhatsApp
+                          </a>
+                        </div>
+
                       </div>
-
-                      {/* BOTÓN WHATSAPP COMPACTO */}
-                      <a
-                        href={`https://wa.me/526361109087?text=Hola,%20me%20interesa%20cotizar%20el%20producto%20código:%20${item.codigo}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 rounded-lg text-center transition-colors shadow-sm block mt-1"
-                      >
-                        Cotizar WhatsApp
-                      </a>
                     </div>
+                  )
+                })}
+              </div>
 
+              {/* BARRA DE PAGINACIÓN INFERIOR */}
+              {totalPaginas > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-10">
+                  <button
+                    onClick={() => cambiarPagina(paginaActual - 1)}
+                    disabled={paginaActual === 1}
+                    className="px-3.5 py-2 rounded-lg bg-white border border-gray-200 text-sm font-bold text-blue-900 disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors shadow-sm"
+                  >
+                    &laquo; Anterior
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => cambiarPagina(num)}
+                        className={`w-9 h-9 rounded-lg text-xs font-bold transition-all ${
+                          paginaActual === num
+                            ? 'bg-orange-500 text-white shadow-md'
+                            : 'bg-white text-blue-900 hover:bg-orange-100 border border-gray-200'
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
                   </div>
-                  </div>
-                )
-              })}
-            </div>
+
+                  <button
+                    onClick={() => cambiarPagina(paginaActual + 1)}
+                    disabled={paginaActual === totalPaginas}
+                    className="px-3.5 py-2 rounded-lg bg-white border border-gray-200 text-sm font-bold text-blue-900 disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors shadow-sm"
+                  >
+                    Siguiente &raquo;
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
