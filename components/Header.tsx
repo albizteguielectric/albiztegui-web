@@ -221,7 +221,7 @@ export default function Header() {
                 </svg>
               </button>
             </form>
-
+           
             <p className="text-[11px] text-gray-400 mt-3 text-center sm:text-left">
               💡 <span className="font-bold">Sugerencia:</span> Puedes ingresar palabras clave como <span className="text-blue-900 font-bold">&quot;Poliducto&quot;</span>, <span className="text-blue-900 font-bold">&quot;Cable&quot;</span> o el código exacto del artículo.
             </p>
