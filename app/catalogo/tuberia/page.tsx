@@ -7,14 +7,17 @@ import Link from 'next/link'
 
 // ESTRUCTURA COMPLETA DE CATEGORÍAS Y SUBCATEGORÍAS PARA TUBERÍA
 const ESTRUCTURA_TUBERIA: Record<string, string[]> = {
-  'TUBERIA': ['Galvanizado', 'PVC', 'Poliducto', 'Flexible'],
+  'TUBERIA': ['Galvanizado', 'PVC', 'Poliducto', 'Flexible', 'Tubo Termocontractil'],
   'CONEXIONES RIGIDAS': [
     'Cople, Conector y Codo Galvanizado',
     'Cople, Conector y Codo PVC',
     'Contratuercas, Monitores y Reducciones Bushin',
     'Condulets'
   ],
-  'CONECTORES FLEXIBLES Y GLANDULAS': ['Conectores Flexibles', 'Conectores Uso Rudo y Glándulas'],
+  'CONECTORES FLEXIBLES Y GLANDULAS': [
+    'Conectores Flexibles', 
+    'Conectores Uso Rudo y Glándulas'
+  ],
   'ABRAZADERAS': ['Uñas y Omegas', 'Clip y Unistrut'],
   'PERFILES UNICANAL Y EVEREST': [
     'Pefiles Unicanal y Everest',
@@ -22,6 +25,16 @@ const ESTRUCTURA_TUBERIA: Record<string, string[]> = {
     'Mid Clamps, End Clamps e Intermedias'
   ]
 }
+
+// Función auxiliar para normalizar textos (elimina acentos y convierte a minúsculas)
+const normalizarTexto = (texto: string) =>
+  texto
+    ? texto
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase()
+    : ''
 
 interface ProductoTuberia {
   id: number
@@ -155,7 +168,7 @@ export default function TuberiaPage() {
     return `${existencias} ${etiqueta}`
   }
 
-  // LÓGICA DE SELECCIÓN Y FILTRADO JERÁRQUICO
+  // LÓGICA DE SELECCIÓN Y FILTRADO JERÁRQUICO FLEXIBLE (TOLERANTE A ACENTOS)
   const seleccionarCategoriaPrincipal = (cat: string) => {
     setCategoriaPrincipal(cat)
     setSubcategoriaActiva('Todas')
@@ -168,17 +181,17 @@ export default function TuberiaPage() {
   }
 
   const productosFiltrados = productos.filter(p => {
-    // Caso 1: Todas las categorías
     if (categoriaPrincipal === 'Todas') return true
 
-    // Coincidencia con la categoría principal elegida
-    const coincideCat = (p.categoria || '').trim().toLowerCase() === categoriaPrincipal.trim().toLowerCase()
-
-    // Caso 2: Categoría específica pero "Todas" las subcategorías
+    const coincideCat = normalizarTexto(p.categoria) === normalizarTexto(categoriaPrincipal)
     if (subcategoriaActiva === 'Todas') return coincideCat
 
-    // Caso 3: Categoría y Subcategoría específicas
-    const coincideSubcat = (p.subcategoria || '').trim().toLowerCase() === subcategoriaActiva.trim().toLowerCase()
+    const subcatProd = normalizarTexto(p.subcategoria)
+    const subcatBuscada = normalizarTexto(subcategoriaActiva)
+
+    // Permite coincidencia flexible (por ejemplo si en la BD dice "Termocontractil" o "Termocontráctil")
+    const coincideSubcat = subcatProd === subcatBuscada || subcatProd.includes('termocontract')
+
     return coincideCat && coincideSubcat
   })
 
