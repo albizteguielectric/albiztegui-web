@@ -21,7 +21,7 @@ const ESTRUCTURA_TUBERIA: Record<string, Record<string, string[]>> = {
     'Condulets': ['Condulet LB','Condulet LR', 'Condulet LL','Condulet OT','Condulet OC', 'Condulet Multiforma']
   },
   'CONECTORES FLEXIBLES Y GLANDULAS': {
-    'Conectores Flexibles': ['HLR', 'FXR'],
+    'Conectores Flexibles': ['HLR','HLC','FXR','FXC'],
     'Uso Rudo y Glandulas': ['Uso Rudo', 'Glandulas']
   },
   'ABRAZADERAS': {
