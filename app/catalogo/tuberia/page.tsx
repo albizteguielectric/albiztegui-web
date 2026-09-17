@@ -5,15 +5,23 @@ import { supabase } from '../../lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 
-// Sub-Pestañas de Filtrado para Tubería y Canalización
-const categoriasTuberia = [
-  { id: 'Todas', nombre: 'Todas' },
-  { id: 'TUBERIA', nombre: 'Tubería' },
-  { id: 'CONEXIONES RIGIDAS', nombre: 'Conexiones Rígidas' },
-  { id: 'CONECTORES FLEXIBLES Y GLANDULAS', nombre: 'Conectores y Glándulas' },
-  { id: 'ABRAZADERAS', nombre: 'Abrazaderas' },
-  { id: 'PERFILES UNICANAL Y EVEREST', nombre: 'Unicanal y Everest' }
-]
+// ESTRUCTURA COMPLETA DE CATEGORÍAS Y SUBCATEGORÍAS PARA TUBERÍA
+const ESTRUCTURA_TUBERIA: Record<string, string[]> = {
+  'TUBERIA': ['Galvanizado', 'PVC', 'Poliducto', 'Flexible'],
+  'CONEXIONES RIGIDAS': [
+    'Cople, Conector y Codo Galvanizado',
+    'Cople, Conector y Codo PVC',
+    'Contratuercas, Monitores y Reducciones Bushin',
+    'Condulets'
+  ],
+  'CONECTORES FLEXIBLES Y GLANDULAS': ['Conectores Flexibles', 'Conectores Uso Rudo y Glándulas'],
+  'ABRAZADERAS': ['Uñas y Omegas', 'Clip y Unistrut'],
+  'PERFILES UNICANAL Y EVEREST': [
+    'Pefiles Unicanal y Everest',
+    'Coples, Soleras y Tipo Piso',
+    'Mid Clamps, End Clamps e Intermedias'
+  ]
+}
 
 interface ProductoTuberia {
   id: number
@@ -35,18 +43,19 @@ interface DatosInventario {
 }
 
 export default function TuberiaPage() {
-  const [catAccesorioActiva, setCatAccesorioActiva] = useState('Todas')
+  // ESTADOS DE FILTRADO JERÁRQUICO
+  const [categoriaPrincipal, setCategoriaPrincipal] = useState<string>('Todas')
+  const [subcategoriaActiva, setSubcategoriaActiva] = useState<string>('Todas')
+
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>({})
-  
-  // Estado para controlar la imagen abierta en el Pop-up / Modal
   const [imagenModal, setImagenModal] = useState<{ url: string; codigo: string } | null>(null)
 
-  // Estados dinámicos de Supabase
+  // ESTADOS DINÁMICOS DE SUPABASE
   const [productos, setProductos] = useState<ProductoTuberia[]>([])
   const [datosInventario, setDatosInventario] = useState<Record<string, DatosInventario>>({})
   const [cargando, setCargando] = useState(true)
 
-  // ESTADOS DE PAGINACIÓN (30 Artículos por página)
+  // ESTADOS DE PAGINACIÓN (30 Artículos por vista)
   const [paginaActual, setPaginaActual] = useState(1)
   const elementosPorPagina = 30
 
@@ -54,11 +63,11 @@ export default function TuberiaPage() {
     let active = true
 
     const fetchProductos = async () => {
-      // 1. Cargar catálogo de productos_tuberia omitiendo el límite por defecto de 100 filas
+      // 1. Cargar catálogo completo de productos_tuberia ordenados por código de menor a mayor
       const { data: prods, error } = await supabase
         .from('productos_tuberia')
         .select('*')
-        .range(0, 9999) // Permite extraer la totalidad de artículos sin el corte implícito de Supabase
+        .range(0, 9999)
         .order('codigo', { ascending: true })
 
       if (!active) return
@@ -131,7 +140,6 @@ export default function TuberiaPage() {
     setImagenModal({ url, codigo })
   }
 
-  // Función para formatear las existencias según la unidad de medida
   const formatearExistencias = (existencias: number, unidad?: string) => {
     if (existencias <= 0) return 'Agotado'
 
@@ -147,34 +155,34 @@ export default function TuberiaPage() {
     return `${existencias} ${etiqueta}`
   }
 
-  // Cambiar categoría y reiniciar a la página 1
-  const cambiarCategoriaFilter = (catId: string) => {
-    setCatAccesorioActiva(catId)
+  // LÓGICA DE SELECCIÓN Y FILTRADO JERÁRQUICO
+  const seleccionarCategoriaPrincipal = (cat: string) => {
+    setCategoriaPrincipal(cat)
+    setSubcategoriaActiva('Todas')
     setPaginaActual(1)
   }
 
-  // Lógica de Filtrado por Categoría / Subcategoría
-  const productosFiltrados = catAccesorioActiva === 'Todas'
-    ? productos
-    : productos.filter(p => {
-        const cat = (p.categoria || '').trim().toUpperCase()
-        const sub = (p.subcategoria || '').trim().toUpperCase()
-        const filtro = catAccesorioActiva.trim().toUpperCase()
+  const seleccionarSubcategoria = (subcat: string) => {
+    setSubcategoriaActiva(subcat)
+    setPaginaActual(1)
+  }
 
-        if (filtro === 'TUBERIA') {
-          return cat === 'TUBERIA' || 
-                 cat === 'TUBERIA RIGIDA' || 
-                 cat === 'TUBERIA Y ACCESORIOS' || 
-                 sub === 'GALVANIZADO' || 
-                 sub === 'PVC' || 
-                 sub === 'POLIDUCTO' || 
-                 sub === 'FLEXIBLE'
-        }
+  const productosFiltrados = productos.filter(p => {
+    // Caso 1: Todas las categorías
+    if (categoriaPrincipal === 'Todas') return true
 
-        return cat === filtro || sub === filtro
-      })
+    // Coincidencia con la categoría principal elegida
+    const coincideCat = (p.categoria || '').trim().toLowerCase() === categoriaPrincipal.trim().toLowerCase()
 
-  // CÁLCULO DE PAGINACIÓN SOBRE EL TOTAL DE FILTRADOS
+    // Caso 2: Categoría específica pero "Todas" las subcategorías
+    if (subcategoriaActiva === 'Todas') return coincideCat
+
+    // Caso 3: Categoría y Subcategoría específicas
+    const coincideSubcat = (p.subcategoria || '').trim().toLowerCase() === subcategoriaActiva.trim().toLowerCase()
+    return coincideCat && coincideSubcat
+  })
+
+  // CÁLCULO DE PAGINACIÓN DINÁMICA
   const totalPaginas = Math.ceil(productosFiltrados.length / elementosPorPagina)
   const indiceInicial = (paginaActual - 1) * elementosPorPagina
   const indiceFinal = indiceInicial + elementosPorPagina
@@ -183,7 +191,7 @@ export default function TuberiaPage() {
   const cambiarPagina = (nuevaPagina: number) => {
     if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
       setPaginaActual(nuevaPagina)
-      window.scrollTo({ top: 600, behavior: 'smooth' })
+      window.scrollTo({ top: 650, behavior: 'smooth' })
     }
   }
 
@@ -200,7 +208,6 @@ export default function TuberiaPage() {
             className="relative bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl overflow-hidden flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* BOTÓN DE CIERRE (X) */}
             <button
               type="button"
               onClick={() => setImagenModal(null)}
@@ -210,13 +217,11 @@ export default function TuberiaPage() {
               ✕
             </button>
 
-            {/* ENCABEZADO DEL MODAL */}
             <div className="w-full text-left border-b border-gray-100 pb-3 mb-4 pr-12">
               <span className="text-xs font-black text-orange-500 uppercase tracking-wider block">Vista de Producto</span>
               <h3 className="text-lg font-extrabold text-blue-900">Código: {imagenModal.codigo}</h3>
             </div>
 
-            {/* CONTENEDOR DE LA IMAGEN AMPLIADA */}
             <div className="relative w-full h-[60vh] sm:h-[70vh] bg-gray-50 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center">
               <Image
                 src={imagenModal.url}
@@ -236,7 +241,7 @@ export default function TuberiaPage() {
 
       <div className="max-w-7xl mx-auto">
         
-        {/* NAVEGACIÓN Y ENCABEZADO */}
+        {/* ENCABEZADO */}
         <div className="mb-8">
           <Link href="/" className="text-orange-500 hover:text-orange-600 font-bold text-sm flex items-center gap-1 mb-2">
             &larr; Volver al Inicio
@@ -288,7 +293,7 @@ export default function TuberiaPage() {
           </div>
         </div>
 
-        {/* TARJETAS INTERACTIVAS COMPACTAS (CATÁLOGO DIRECTO) */}
+        {/* NAVEGACIÓN Y CATÁLOGOS DE PRODUCTO */}
         <div className="mb-16">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -298,28 +303,74 @@ export default function TuberiaPage() {
               Catálogo de Tubería, Conexiones y Soportería
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              Haz clic en la imagen para verla en pantalla completa, o en el texto para girar la tarjeta.
+              Selecciona una categoría principal y filtra por subcategoría para encontrar rápidamente tus productos.
             </p>
           </div>
 
-          {/* FILTRO DE CATEGORÍAS */}
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6">
-            {categoriasTuberia.map((cat) => (
+          {/* NIVEL 1: CATEGORÍAS PRINCIPALES (PESTAÑAS DESTACADAS) */}
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-4">
+            <button
+              onClick={() => seleccionarCategoriaPrincipal('Todas')}
+              className={`px-5 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition-all shadow-sm ${
+                categoriaPrincipal === 'Todas'
+                  ? 'bg-blue-950 text-white ring-2 ring-orange-500 shadow-md'
+                  : 'bg-white text-blue-900 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              Ver Todo
+            </button>
+
+            {Object.keys(ESTRUCTURA_TUBERIA).map((catKey) => (
               <button
-                key={cat.id}
-                onClick={() => cambiarCategoriaFilter(cat.id)}
-                className={`px-4 py-2.5 rounded-lg font-extrabold text-xs sm:text-sm transition-all ${
-                  catAccesorioActiva === cat.id
-                    ? 'bg-orange-500 text-white shadow-md'
-                    : 'bg-white text-blue-900 hover:bg-orange-100 border border-gray-200'
+                key={catKey}
+                onClick={() => seleccionarCategoriaPrincipal(catKey)}
+                className={`px-5 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition-all shadow-sm ${
+                  categoriaPrincipal === catKey
+                    ? 'bg-orange-500 text-white ring-2 ring-orange-600 shadow-md'
+                    : 'bg-white text-blue-900 hover:bg-orange-50 border border-gray-200'
                 }`}
               >
-                {cat.nombre}
+                {catKey}
               </button>
             ))}
           </div>
 
-          {/* INFORMACIÓN DE REGISTROS Y PAGINACIÓN ARRIBA */}
+          {/* NIVEL 2: SUBCATEGORÍAS SECUNDARIAS (FILTRADO FINO EN PÍLDORAS) */}
+          {categoriaPrincipal !== 'Todas' && ESTRUCTURA_TUBERIA[categoriaPrincipal] && (
+            <div className="bg-orange-50/60 p-4 rounded-2xl border border-orange-100 max-w-4xl mx-auto mb-8 transition-all">
+              <span className="text-[11px] font-black text-orange-600 uppercase tracking-wider block text-center mb-2">
+                Subcategorías de {categoriaPrincipal}:
+              </span>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button
+                  onClick={() => seleccionarSubcategoria('Todas')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    subcategoriaActiva === 'Todas'
+                      ? 'bg-blue-900 text-white shadow'
+                      : 'bg-white text-gray-700 hover:bg-orange-100 border border-orange-200'
+                  }`}
+                >
+                  Todas las subcategorías
+                </button>
+
+                {ESTRUCTURA_TUBERIA[categoriaPrincipal].map((subcat) => (
+                  <button
+                    key={subcat}
+                    onClick={() => seleccionarSubcategoria(subcat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      subcategoriaActiva === subcat
+                        ? 'bg-orange-500 text-white shadow'
+                        : 'bg-white text-gray-700 hover:bg-orange-100 border border-orange-200'
+                    }`}
+                  >
+                    {subcat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* BARRA DE INFORMACIÓN Y CONTROLES DE PAGINACIÓN SUPERIOR */}
           {!cargando && productosFiltrados.length > 0 && (
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 px-2 text-xs font-bold text-gray-500 gap-2">
               <span>
@@ -357,11 +408,11 @@ export default function TuberiaPage() {
             </div>
           ) : productosFiltrados.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-3xl border border-gray-200">
-              <p className="text-gray-500 font-semibold">No hay productos registrados en esta categoría aún.</p>
+              <p className="text-gray-500 font-semibold">No hay productos registrados en esta subcategoría aún.</p>
             </div>
           ) : (
             <>
-              {/* RETÍCULA DE TARJETAS COMPACTAS (PAGINADAS A 30 POR VISTA) */}
+              {/* RETÍCULA DE TARJETAS COMPACTAS (PAGINADAS) */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                 {productosPaginados.map((item) => {
                   const isFlipped = flippedCards[item.id] || false;
@@ -433,7 +484,7 @@ export default function TuberiaPage() {
                               {descripcionReverso}
                             </p>
 
-                            {/* PRECIO Y STOCK DINÁMICO */}
+                            {/* PRECIO Y STOCK DINÁMICO CON UNIDAD DE MEDIDA */}
                             <div className="bg-blue-900/60 p-1.5 rounded-lg border border-blue-800/60 space-y-0.5">
                               {item.mostrar_precio && (
                                 <div className="flex justify-between items-center">
