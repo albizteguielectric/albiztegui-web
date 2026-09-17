@@ -35,95 +35,155 @@ interface ProductoCatalogo {
   descripcion: string
   categoria: string
   subcategoria: string
+  subcategoria_especifica?: string
   imagen_url: string
   mostrar_precio: boolean
   mostrar_existencias: boolean
   unidad_medida?: string
   precio?: number
   existencias?: number
+  imagenes_galeria?: string[]
 }
 
-// 1. ESTRUCTURAS DE CATEGORÍAS Y SUBCATEGORÍAS PARA CADA SECCIÓN
-const ESTRUCTURAS_POR_CATALOGO: Record<string, Record<string, string[]>> = {
+// 1. ESTRUCTURAS DE 3 NIVELES: CATEGORÍA -> SUBCATEGORÍA -> SUBCATEGORÍA ESPECÍFICA
+const ESTRUCTURAS_POR_CATALOGO: Record<string, Record<string, Record<string, string[]>>> = {
   tuberia: {
-    'TUBERIA': ['Galvanizado', 'PVC', 'Poliducto', 'Flexible', 'Termocontractil'],
-    'CONEXIONES RIGIDAS': [
-      'Cople, Conector y Codo Galvanizado',
-      'Cople, Conector y Codo PVC',
-      'Contratuercas, Monitores y Reducciones Bushin',
-      'Condulets'
-    ],
-    'CONECTORES FLEXIBLES Y GLANDULAS': ['Conectores Flexibles', 'Conectores Uso Rudo y Glándulas'],
-    'ABRAZADERAS': ['Uñas y Omegas', 'Clip y Unistrut'],
-    'PERFILES UNICANAL Y EVEREST': [
-      'Pefiles Unicanal y Everest',
-      'Coples, Soleras y Tipo Piso',
-      'Mid Clamps, End Clamps e Intermedias'
-    ]
+    'TUBERIA': {
+      'Galvanizado': ['Etiqueta Azul', 'Etiqueta Verde', 'Etiqueta Amarilla'],
+      'PVC': ['Liguero', 'Pesado'],
+      'Poliducto': ['Naranja', 'Naranja Bicapa', 'Negro', 'Narnaja Flexible', 'Manguera Corrugada'],
+      'Tubo Flexible': ['Flexible', 'Licuatite'],
+      'Tubo Termocontractil': ['Termocontractil']
+    },
+    'CONEXIONES RIGIDAS': {
+      'Cople, Conector y Codo Galvanizado': ['Coples', 'Conectores', 'Codos'],
+      'Cople, Conector y Codo PVC': ['Coples', 'Conectores', 'Codos'],
+      'Contratuercas, Monitores y Reducciones Bushin': ['Contratuercas', 'Monitores', 'Reducciones Bushing'],
+      'Condulets': ['Condulet', 'Condulet Multiforma']
+    },
+    'CONECTORES FLEXIBLES Y GLANDULAS': {
+      'Conectores Flexibles': ['HLR', 'FXR'],
+      'Uso Rudo y Glandulas': ['Uso Rudo', 'Glandulas']
+    },
+    'ABRAZADERAS': {
+      'Omegas y Uñas': ['Omegas', 'Uñas'],
+      'Clip y Unistrut': ['Clip', 'Unistrut']
+    },
+    'PERFILES UNICANAL Y EVEREST': {
+      'Perfiles Unicanal y Everest': ['Perfiles Unicanal y Everest', 'Coples, Soleras y Tipo Piso', 'Mid Clamps, End Clamps e Intermedias']
+    }
   },
   cajas_registros: {
-    'CAJAS METALICAS': ['Cajas 2x4', 'Cajas 4x4, 5x5, 6x6, 8x8', 'Cajas Octagonales'],
-    'PLASTICAS Y CANALETAS': ['Chalupas Plasticas', 'Cajas de Reparacion', 'Cajas Estanca', 'Canaletas'],
-    'INTERPERIE Y TIPO ZAPATO': ['Chalupas de Interperie', 'Armarios', 'Cajas tipo Zapato'],
-    'TAPAS Y COMPLEMENTOS': ['Tapas Ciegas Galvanizadas', 'Tapas Galvanizadas', 'Tapas Interperie', 'Tapas Especiales']
+    'CAJAS METALICAS': {
+      'Cajas Generales': ['Cajas 2x4', 'Cajas 4x4, 5x5, 6x6, 8x8', 'Cajas Octagonales']
+    },
+    'PLASTICAS Y CANALETAS': {
+      'Plasticas': ['Chalupas Plasticas', 'Cajas de Reparacion', 'Cajas Estanca', 'Canaletas']
+    },
+    'INTERPERIE Y TIPO ZAPATO': {
+      'Especiales': ['Chalupas de Interperie', 'Armarios', 'Cajas tipo Zapato']
+    },
+    'TAPAS Y COMPLEMENTOS': {
+      'Tapas': ['Tapas Ciegas Galvanizadas', 'Tapas Galvanizadas', 'Tapas Interperie', 'Tapas Especiales']
+    }
   },
   cableado: {
-    'CABLE': ['Cobre', 'Aluminio'],
-    'CABLE ESPECIAL': ['Uso Rudo', 'POT / Duplex', 'Romex', 'Automotriz', 'Solar'],
-    'EMBOBINADO': ['Magneto', 'Cuñas', 'Espagetti', 'Barniz', 'Cinta']
+    'CABLE': {
+      'Conductores': ['Cobre', 'Aluminio']
+    },
+    'CABLE ESPECIAL': {
+      'Especiales': ['Uso Rudo', 'POT / Duplex', 'Romex', 'Automotriz', 'Solar']
+    },
+    'EMBOBINADO': {
+      'Aislamiento y Bobinas': ['Magneto', 'Cuñas', 'Espagetti', 'Barniz', 'Cinta']
+    }
   },
   iluminacion: {
-    'FOCOS': ['Focos LED', 'Focos Incandecentes', 'Focos tipo Vela y Bintage'],
-    'SPOT': ['Empotrados', 'Sobrepuestos', 'Dimeables'],
-    'PLAFONES Y LAMPARAS': ['Plafones', 'Lamparas Horizontales'],
-    'ARBOTANTES': ['Arbotantes Electrico', 'Arbotante Solar'],
-    'LAMPARAS EXTERIORES': ['Reflectores', 'Sub Urbanas']
+    'FOCOS': {
+      'Focos': ['Focos LED', 'Focos Incandecentes', 'Focos tipo Vela y Bintage']
+    },
+    'SPOT': {
+      'Spots': ['Empotrados', 'Sobrepuestos', 'Dimeables']
+    },
+    'PLAFONES Y LAMPARAS': {
+      'Interiores': ['Plafones', 'Lamparas Horizontales']
+    },
+    'ARBOTANTES': {
+      'Muros': ['Arbotantes Electrico', 'Arbotante Solar']
+    },
+    'LAMPARAS EXTERIORES': {
+      'Exteriores': ['Reflectores', 'Sub Urbanas']
+    }
   },
   control_fuerza: {
-    'CENTROS DE CARGA': ['Metalicos', 'Riel DIN'],
-    'BRAKERS': ['QD y QP', 'Riel DIN', 'Termomagneticos'],
-    'DE CONTROL': ['Contactores', 'Relevadores', 'Guardamotores', 'Arrancadores'],
-    'ACOMETIDA': ['Bases Socket', 'Accesorios']
+    'CENTROS DE CARGA': {
+      'Cajas': ['Metalicos', 'Riel DIN']
+    },
+    'BRAKERS': {
+      'Interruptores': ['QD y QP', 'Riel DIN', 'Termomagneticos']
+    },
+    'DE CONTROL': {
+      'Automatizacion': ['Contactores', 'Relevadores', 'Guardamotores', 'Arrancadores']
+    },
+    'ACOMETIDA': {
+      'Medicion': ['Bases Socket', 'Accesorios']
+    }
   },
   placas_apagadores: {
-    'ETON y LEVITON': ['Tradicionales', 'Decorato'],
-    'PLACAS Y TAPAS': ['Tapas 2x4 y 4x4', 'Especiales Decorato'],
-    'LUCEK': ['Basic', 'Flat', 'Premium', 'Cristal']
+    'ETON y LEVITON': {
+      'Líneas': ['Tradicionales', 'Decorato']
+    },
+    'PLACAS Y TAPAS': {
+      'Placas': ['Tapas 2x4 y 4x4', 'Especiales Decorato']
+    },
+    'LUCEK': {
+      'Modelos': ['Basic', 'Flat', 'Premium', 'Cristal']
+    }
   },
   media_tension: {
-    'TRASFORMADORES': ['Secos', 'Otros'],
-    'CORTACIRCUITOS': ['Canillas', 'Fisibles de Alta', 'Cortacircuitos'],
-    'APARTARRAYOS': ['Polimero', 'Ceramicos'],
-    'ACCESORIOS': [
-      'Crucetas',
-      'Abrazaderas',
-      'Herrajes',
-      'Remates',
-      'Aisladores',
-      'Grapas',
-      'Conectores y Derivadores',
-      'Multiples Mecanicos'
-    ]
+    'TRASFORMADORES': {
+      'Transformadores': ['Secos', 'Otros']
+    },
+    'CORTACIRCUITOS': {
+      'Proteccion': ['Canillas', 'Fisibles de Alta', 'Cortacircuitos']
+    },
+    'APARTARRAYOS': {
+      'Aisladores': ['Polimero', 'Ceramicos']
+    },
+    'ACCESORIOS': {
+      'Herrajes': ['Crucetas', 'Abrazaderas', 'Herrajes', 'Remates', 'Aisladores', 'Grapas', 'Conectores y Derivadores', 'Multiples Mecanicos']
+    }
   },
   electronica: {
-    'HERRAMIENTAS': [
-      'Pinzas',
-      'Desarmadores',
-      'Probadores de Cable',
-      'Dobla Tubos, Corta Tubos y Guias',
-      'Linea de Vida',
-      'Carbones'
-    ],
-    'TORNILLERIA': ['Taquetes', 'Tornillos', 'Terminales', 'Corbatas', 'Capuchones'],
-    'ENERGIA': ['Baterias Alcalinas y Recargables', 'Inversores', 'Reguladores y UPS', 'Multiples y Extensiones'],
-    'SMART HOME': ['Focos y Tomas', 'Camaras', 'Timbres'],
-    'AUDIO Y VIDEO': ['Cables RCA', 'Cables de Luz', 'Accesorios', 'Fusibles'],
-    'CINTAS ASILANTES':['Cinta Aislante', 'Vulcanizable y Maya', 'Precaucion', 'Doble Cara', 'Empaquetar']
+    'HERRAMIENTAS': {
+      'Manuales': ['Pinzas', 'Desarmadores', 'Probadores de Cable', 'Dobla Tubos, Corta Tubos y Guias', 'Linea de Vida', 'Carbones']
+    },
+    'TORNILLERIA': {
+      'Fijacion': ['Taquetes', 'Tornillos', 'Terminales', 'Corbatas', 'Capuchones']
+    },
+    'ENERGIA': {
+      'Suministro': ['Baterias Alcalinas y Recargables', 'Inversores', 'Reguladores y UPS', 'Multiples y Extensiones']
+    },
+    'SMART HOME': {
+      'Domotica': ['Focos y Tomas', 'Camaras', 'Timbres']
+    },
+    'AUDIO Y VIDEO': {
+      'Conectividad': ['Cables RCA', 'Cables de Luz', 'Accesorios', 'Fusibles']
+    },
+    'CINTAS ASILANTES': {
+      'Cintas': ['Cinta Aislante', 'Vulcanizable y Maya', 'Precaucion', 'Doble Cara', 'Empaquetar']
+    }
   },
   productos_temporada: {
-    'VENTILADORES Y CALENTONES': ['De techo y Piso', 'Calentones'],
-    'NAVIDAD': ['Luces', 'Inflables', 'Decoraciones'],
-    'ESPEJOS': ['Con Luz', 'Sin Luz']
+    'VENTILADORES Y CALENTONES': {
+      'Climatizacion': ['De techo y Piso', 'Calentones']
+    },
+    'NAVIDAD': {
+      'Decoracion': ['Luces', 'Inflables', 'Decoraciones']
+    },
+    'ESPEJOS': {
+      'Espejos': ['Con Luz', 'Sin Luz']
+    }
   }
 }
 
@@ -144,10 +204,7 @@ export default function Dashboard() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   
-  // INICIALIZAR SIN NINGUNA PESTAÑA SELECCIONADA POR DEFECTO
   const [activeTab, setActiveTab] = useState<string | null>(null)
-
-  // MENÚ DESPLEGABLE DE CATÁLOGO CERRADO AL ENTRAR
   const [menuCatalogoAbierto, setMenuCatalogoAbierto] = useState(false)
 
   // ESTADOS GENERALES
@@ -162,10 +219,11 @@ export default function Dashboard() {
   const [sitioWebMarca, setSitioWebMarca] = useState('')
   const [subiendoMarca, setSubiendoMarca] = useState(false)
 
-  // ESTADOS DINÁMICOS DEL FORMULARIO DE PRODUCTOS
-  const [estructuraActual, setEstructuraActual] = useState<Record<string, string[]>>({})
+  // ESTADOS FORMULARIO REGISTRO (3 NIVELES)
+  const [estructuraActual, setEstructuraActual] = useState<Record<string, Record<string, string[]>>>({})
   const [categoriaSel, setCategoriaSel] = useState('')
   const [subcategoriaSel, setSubcategoriaSel] = useState('')
+  const [subcategoriaEspecialSel, setSubcategoriaEspecialSel] = useState('')
   
   const [codigoProd, setCodigoProd] = useState('')
   const [nombreComercialProd, setNombreComercialProd] = useState('') 
@@ -179,14 +237,23 @@ export default function Dashboard() {
   const [productosLista, setProductosLista] = useState<ProductoCatalogo[]>([])
   const [editandoId, setEditandoId] = useState<number | null>(null)
 
-  // ESTADO PARA FILTRAR LA TABLA POR SUBCATEGORÍA
-  const [filtroSubcategoriaTabla, setFiltroSubcategoriaTabla] = useState('TODAS')
+  // ESTADOS GALERÍA DE IMÁGENES DEL CATÁLOGO
+  const [galeriaSeccionSel, setGaleriaSeccionSel] = useState('tuberia')
+  const [galeriaCategoriaSel, setGaleriaCategoriaSel] = useState('TODAS')
+  const [galeriaSubcategoriaSel, setGaleriaSubcategoriaSel] = useState('TODAS')
+  const [galeriaSubcategoriaEspecialSel, setGaleriaSubcategoriaEspecialSel] = useState('TODAS')
+  const [galeriaProductos, setGaleriaProductos] = useState<ProductoCatalogo[]>([])
+  const [subiendoGaleriaId, setSubiendoGaleriaId] = useState<number | null>(null)
 
-  // ESTADOS DE PAGINACIÓN PARA LA TABLA DEL DASHBOARD (30 productos por página)
+  // FILTROS COMPACTOS TABLA PRINCIPAL
+  const [filtroSubcategoriaTabla, setFiltroSubcategoriaTabla] = useState('TODAS')
+  const [filtroSubcategoriaEspecialTabla, setFiltroSubcategoriaEspecialTabla] = useState('TODAS')
+
+  // PAGINACIÓN
   const [paginaTabla, setPaginaTabla] = useState(1)
   const elementosPorPagina = 30
 
-  // ESTADOS DE CONTROL GLOBAL DE VISIBILIDAD EN LA SECCIÓN
+  // VISIBILIDAD GLOBAL
   const [estadoPrecioGlobal, setEstadoPrecioGlobal] = useState(true)
   const [estadoStockGlobal, setEstadoStockGlobal] = useState(true)
 
@@ -220,7 +287,6 @@ export default function Dashboard() {
 
   const cargarProductosSeccion = async (tabId: string) => {
     const tabla = obtenerNombreTabla(tabId)
-    // Rango amplio para omitir el límite por defecto de Supabase de 100 filas
     const { data } = await supabase
       .from(tabla)
       .select('*')
@@ -238,20 +304,38 @@ export default function Dashboard() {
     }
   }
 
-  // Cambiar pestaña del catálogo y actualizar opciones del selector
+  const cargarProductosGaleria = async (seccionId: string) => {
+    const tabla = obtenerNombreTabla(seccionId)
+    const { data } = await supabase
+      .from(tabla)
+      .select('*')
+      .range(0, 9999)
+      .order('codigo', { ascending: true })
+
+    if (data) {
+      setGaleriaProductos(data)
+    } else {
+      setGaleriaProductos([])
+    }
+  }
+
   const cambiarPestanaCatalogo = (tabId: string) => {
     setActiveTab(tabId)
     setFiltroSubcategoriaTabla('TODAS')
+    setFiltroSubcategoriaEspecialTabla('TODAS')
     setPaginaTabla(1)
     
-    const nuevaEstructura = ESTRUCTURAS_POR_CATALOGO[tabId] || ESTRUCTURAS_POR_CATALOGO['cableado']
+    const nuevaEstructura = ESTRUCTURAS_POR_CATALOGO[tabId] || ESTRUCTURAS_POR_CATALOGO['tuberia']
     setEstructuraActual(nuevaEstructura)
     
     const primeraCat = Object.keys(nuevaEstructura)[0] || ''
-    const primeraSubcat = nuevaEstructura[primeraCat]?.[0] || ''
+    const primeraSubcat = primeraCat ? Object.keys(nuevaEstructura[primeraCat] || {})[0] || '' : ''
+    const primeraSubEspecial = (primeraCat && primeraSubcat) ? (nuevaEstructura[primeraCat][primeraSubcat]?.[0] || '') : ''
     
     setCategoriaSel(primeraCat)
     setSubcategoriaSel(primeraSubcat)
+    setSubcategoriaEspecialSel(primeraSubEspecial)
+
     setEditandoId(null)
     setCodigoProd('')
     setNombreComercialProd('')
@@ -271,17 +355,31 @@ export default function Dashboard() {
         cargarMensajes()
         cargarMarcas()
         if (activeTab) {
-          cargarProductosSeccion(activeTab)
+          if (activeTab === 'imagenes_catalogo') {
+            cargarProductosGaleria(galeriaSeccionSel)
+          } else {
+            cargarProductosSeccion(activeTab)
+          }
         }
       }
     }
     checkUser()
-  }, [router, activeTab])
+  }, [router, activeTab, galeriaSeccionSel])
 
   const handleCategoriaChange = (cat: string) => {
     setCategoriaSel(cat)
-    const subcats = estructuraActual[cat] || []
-    setSubcategoriaSel(subcats.length > 0 ? subcats[0] : '')
+    const subcats = Object.keys(estructuraActual[cat] || {})
+    const primeraSub = subcats[0] || ''
+    setSubcategoriaSel(primeraSub)
+
+    const subEspeciales = primeraSub ? (estructuraActual[cat][primeraSub] || []) : []
+    setSubcategoriaEspecialSel(subEspeciales[0] || '')
+  }
+
+  const handleSubcategoriaChange = (sub: string) => {
+    setSubcategoriaSel(sub)
+    const subEspeciales = estructuraActual[categoriaSel]?.[sub] || []
+    setSubcategoriaEspecialSel(subEspeciales[0] || '')
   }
 
   const buscarDescripcionBD = async (codigo: string) => {
@@ -388,6 +486,7 @@ export default function Dashboard() {
         descripcion: nombreComercialProd,
         categoria: categoriaSel,
         subcategoria: subcategoriaSel,
+        subcategoria_especifica: subcategoriaEspecialSel,
         imagen_url: imagenUrl,
         mostrar_precio: mostrarPrecio,
         mostrar_existencias: mostrarExistencias,
@@ -421,10 +520,63 @@ export default function Dashboard() {
     }
   }
 
+  const subirImagenesGaleria = async (producto: ProductoCatalogo, archivos: FileList | null) => {
+    if (!archivos || archivos.length === 0) return
+
+    setSubiendoGaleriaId(producto.id || null)
+    try {
+      const fotosExistentes = producto.imagenes_galeria || []
+      const codigoUpper = producto.codigo.toUpperCase()
+      const nuevasUrls: string[] = []
+
+      for (let i = 0; i < archivos.length; i++) {
+        const file = archivos[i]
+        const indice = fotosExistentes.length + i + 1
+        const nombreArchivoSecuencial = `${codigoUpper}.${indice}.jpg`
+
+        const dataImg = new FormData()
+        dataImg.append('codigo', codigoUpper)
+        dataImg.append('nombre_personalizado', nombreArchivoSecuencial)
+        dataImg.append('imagen', file)
+
+        const resImg = await fetch('/api/admin/subir-imagen', {
+          method: 'POST',
+          body: dataImg,
+        })
+
+        if (!resImg.ok) {
+          throw new Error(`Error al subir la imagen ${i + 1}`)
+        }
+
+        const resultImg = await resImg.json()
+        nuevasUrls.push(resultImg.imagen_url || `https://raw.githubusercontent.com/albizteguielectric/catalogo-img/main/${nombreArchivoSecuencial}`)
+      }
+
+      const imagenesActualizadas = [...fotosExistentes, ...nuevasUrls]
+      const tabla = obtenerNombreTabla(galeriaSeccionSel)
+
+      const { error } = await supabase
+        .from(tabla)
+        .update({ imagenes_galeria: imagenesActualizadas })
+        .eq('id', producto.id)
+
+      if (error) throw error
+
+      mostrarAlerta(`Se agregaron ${archivos.length} imágenes correctamente al producto ${codigoUpper}.`, 'exito')
+      cargarProductosGaleria(galeriaSeccionSel)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al subir imágenes a la galería'
+      mostrarAlerta(msg, 'error')
+    } finally {
+      setSubiendoGaleriaId(null)
+    }
+  }
+
   const prepararEdicion = (p: ProductoCatalogo) => {
     setEditandoId(p.id || null)
     setCategoriaSel(p.categoria)
     setSubcategoriaSel(p.subcategoria)
+    setSubcategoriaEspecialSel(p.subcategoria_especifica || '')
     setCodigoProd(p.codigo)
     setNombreComercialProd(p.descripcion)
     setMostrarPrecio(p.mostrar_precio)
@@ -523,15 +675,24 @@ export default function Dashboard() {
 
   const esPestanaCatalogo = activeTab ? CATEGORIAS_CATALOGO.some(c => c.id === activeTab) : false
 
-  // Extraer subcategorías únicas de la sección actual para el filtro de la tabla
+  // SUBCATEGORÍAS PARA LA TABLA PRINCIPAL DEL DASHBOARD
   const subcategoriasDisponibles = activeTab && ESTRUCTURAS_POR_CATALOGO[activeTab]
-    ? Array.from(new Set(Object.values(ESTRUCTURAS_POR_CATALOGO[activeTab]).flat()))
+    ? Array.from(new Set(Object.values(ESTRUCTURAS_POR_CATALOGO[activeTab]).flatMap(cat => Object.keys(cat))))
     : []
 
-  // Productos filtrados según la subcategoría seleccionada
-  const productosMostrarTabla = filtroSubcategoriaTabla === 'TODAS'
-    ? productosLista
-    : productosLista.filter(p => (p.subcategoria || '').trim().toLowerCase() === filtroSubcategoriaTabla.trim().toLowerCase())
+  // ESPECÍFICAS EXCLUSIVAS DE LA SUBCATEGORÍA SELECCIONADA EN LA TABLA
+  const subcategoriasEspecialesDisponibles = (activeTab && ESTRUCTURAS_POR_CATALOGO[activeTab] && filtroSubcategoriaTabla !== 'TODAS')
+    ? Array.from(new Set(
+        Object.values(ESTRUCTURAS_POR_CATALOGO[activeTab])
+          .flatMap(cat => cat[filtroSubcategoriaTabla] || [])
+      ))
+    : []
+
+  const productosMostrarTabla = productosLista.filter(p => {
+    const coincideSub = filtroSubcategoriaTabla === 'TODAS' || (p.subcategoria || '').trim().toLowerCase() === filtroSubcategoriaTabla.trim().toLowerCase()
+    const coincideSubEsp = filtroSubcategoriaEspecialTabla === 'TODAS' || (p.subcategoria_especifica || '').trim().toLowerCase() === filtroSubcategoriaEspecialTabla.trim().toLowerCase()
+    return coincideSub && coincideSubEsp
+  })
 
   // CÁLCULOS Y SLICE DE PAGINACIÓN DE LA TABLA
   const totalPaginasTabla = Math.ceil(productosMostrarTabla.length / elementosPorPagina)
@@ -544,6 +705,25 @@ export default function Dashboard() {
       setPaginaTabla(nuevaPagina)
     }
   }
+
+  // ESTRUCTURAS Y OPCIONES DEPENDIENTES PARA "IMÁGENES DEL CATÁLOGO"
+  const estructuraGaleriaActual = ESTRUCTURAS_POR_CATALOGO[galeriaSeccionSel] || {}
+  const categoriasGaleriaDisponibles = Object.keys(estructuraGaleriaActual)
+  
+  const subcategoriasGaleriaDisponibles = galeriaCategoriaSel !== 'TODAS' && estructuraGaleriaActual[galeriaCategoriaSel]
+    ? Object.keys(estructuraGaleriaActual[galeriaCategoriaSel])
+    : Array.from(new Set(Object.values(estructuraGaleriaActual).flatMap(c => Object.keys(c))))
+
+  const subcategoriasEspecialesGaleriaDisponibles = (galeriaCategoriaSel !== 'TODAS' && galeriaSubcategoriaSel !== 'TODAS' && estructuraGaleriaActual[galeriaCategoriaSel]?.[galeriaSubcategoriaSel])
+    ? estructuraGaleriaActual[galeriaCategoriaSel][galeriaSubcategoriaSel]
+    : []
+
+  const galeriaProductosFiltrados = galeriaProductos.filter(p => {
+    const coincideCat = galeriaCategoriaSel === 'TODAS' || (p.categoria || '').trim().toLowerCase() === galeriaCategoriaSel.trim().toLowerCase()
+    const coincideSubcat = galeriaSubcategoriaSel === 'TODAS' || (p.subcategoria || '').trim().toLowerCase() === galeriaSubcategoriaSel.trim().toLowerCase()
+    const coincideSubEsp = galeriaSubcategoriaEspecialSel === 'TODAS' || (p.subcategoria_especifica || '').trim().toLowerCase() === galeriaSubcategoriaEspecialSel.trim().toLowerCase()
+    return coincideCat && coincideSubcat && coincideSubEsp
+  })
 
   if (loading) {
     return (
@@ -601,8 +781,6 @@ export default function Dashboard() {
         </div>
         
         <nav className="flex-grow p-4 space-y-2">
-          
-          {/* BOTÓN DESPLEGABLE: CATÁLOGO */}
           <div>
             <button
               type="button"
@@ -615,7 +793,6 @@ export default function Dashboard() {
               </span>
             </button>
 
-            {/* SUB-CATEGORÍAS DESPLEGABLES */}
             {menuCatalogoAbierto && (
               <div className="mt-1 ml-3 pl-3 border-l-2 border-orange-500/50 space-y-1">
                 {CATEGORIAS_CATALOGO.map((cat) => (
@@ -635,6 +812,17 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          <button 
+            type="button"
+            onClick={() => {
+              setActiveTab('imagenes_catalogo')
+              cargarProductosGaleria(galeriaSeccionSel)
+            }}
+            className={`w-full text-left px-4 py-3 rounded-lg font-bold transition-colors shadow-sm ${activeTab === 'imagenes_catalogo' ? 'bg-orange-500 text-white' : 'text-gray-300 hover:bg-blue-900 hover:text-white'}`}
+          >
+            Imágenes del Catálogo
+          </button>
 
           <button 
             type="button"
@@ -677,7 +865,6 @@ export default function Dashboard() {
       <main className="flex-grow p-4 sm:p-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-10 min-h-[500px]">
           
-          {/* VISTA EN BLANCO CUANDO NO HAY NADA SELECCIONADO */}
           {!activeTab && (
             <div className="h-full flex flex-col items-center justify-center py-20 text-center">
               <div className="text-6xl mb-4 opacity-40">👈</div>
@@ -688,7 +875,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* VISTAS DE CATÁLOGO DINÁMICAS */}
+          {/* VISTAS DE CATÁLOGO DINÁMICAS CON 3 NIVELES */}
           {esPestanaCatalogo && (
             <div>
               <div className="flex flex-col xl:flex-row justify-between xl:items-center mb-6 gap-4">
@@ -696,11 +883,9 @@ export default function Dashboard() {
                   Catálogo: {CATEGORIAS_CATALOGO.find(c => c.id === activeTab)?.nombre}
                 </h1>
 
-                {/* BOTONES COMPACTOS DE CONTROL GLOBAL TIPO PÍLDORA / SWITCH */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-100 p-2 rounded-xl border border-gray-200 self-start xl:self-auto">
                   <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider px-1">Global:</span>
                   
-                  {/* SWITCH PRECIOS */}
                   <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm">
                     <span className="text-xs font-bold text-gray-700">Precios:</span>
                     <button
@@ -709,20 +894,14 @@ export default function Dashboard() {
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
                         estadoPrecioGlobal ? 'bg-green-500' : 'bg-gray-300'
                       }`}
-                      title={estadoPrecioGlobal ? 'Precios Visibles' : 'Precios Ocultos'}
                     >
-                      <span
-                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                          estadoPrecioGlobal ? 'translate-x-4.5' : 'translate-x-1'
-                        }`}
-                      />
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${estadoPrecioGlobal ? 'translate-x-4.5' : 'translate-x-1'}`} />
                     </button>
                     <span className={`text-[10px] font-black uppercase ${estadoPrecioGlobal ? 'text-green-600' : 'text-gray-400'}`}>
                       {estadoPrecioGlobal ? 'SÍ' : 'NO'}
                     </span>
                   </div>
 
-                  {/* SWITCH STOCK */}
                   <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm">
                     <span className="text-xs font-bold text-gray-700">Stock:</span>
                     <button
@@ -731,13 +910,8 @@ export default function Dashboard() {
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
                         estadoStockGlobal ? 'bg-blue-600' : 'bg-gray-300'
                       }`}
-                      title={estadoStockGlobal ? 'Stock Visible' : 'Stock Oculto'}
                     >
-                      <span
-                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                          estadoStockGlobal ? 'translate-x-4.5' : 'translate-x-1'
-                        }`}
-                      />
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${estadoStockGlobal ? 'translate-x-4.5' : 'translate-x-1'}`} />
                     </button>
                     <span className={`text-[10px] font-black uppercase ${estadoStockGlobal ? 'text-blue-600' : 'text-gray-400'}`}>
                       {estadoStockGlobal ? 'SÍ' : 'NO'}
@@ -746,7 +920,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* FORMULARIO DE REGISTRO */}
+              {/* FORMULARIO DE REGISTRO CON 3 COMBOBOX */}
               <form onSubmit={guardarProducto} className="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-6">
                 <div className="flex justify-between items-center border-b border-gray-200 pb-3">
                   <h3 className="font-bold text-blue-950 text-lg">
@@ -757,13 +931,15 @@ export default function Dashboard() {
                       type="button" 
                       onClick={() => {
                         const primeraCat = Object.keys(estructuraActual)[0] || ''
+                        const primeraSub = primeraCat ? Object.keys(estructuraActual[primeraCat] || {})[0] || '' : ''
                         setEditandoId(null)
                         setCodigoProd('')
                         setNombreComercialProd('')
                         setDescripcionTecnicaDb('')
                         setUnidadMedida('pieza')
                         setCategoriaSel(primeraCat)
-                        setSubcategoriaSel(estructuraActual[primeraCat]?.[0] || '')
+                        setSubcategoriaSel(primeraSub)
+                        setSubcategoriaEspecialSel(primeraSub ? (estructuraActual[primeraCat][primeraSub]?.[0] || '') : '')
                       }}
                       className="text-xs font-bold text-red-500 hover:underline"
                     >
@@ -772,10 +948,10 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* CATEGORÍAS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* SELECTORES DE 3 NIVELES */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Categoría Principal</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">1. Categoría Principal</label>
                     <select
                       value={categoriaSel}
                       onChange={(e) => handleCategoriaChange(e.target.value)}
@@ -788,14 +964,27 @@ export default function Dashboard() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Subcategoría Específica</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">2. Subcategoría</label>
                     <select
                       value={subcategoriaSel}
-                      onChange={(e) => setSubcategoriaSel(e.target.value)}
+                      onChange={(e) => handleSubcategoriaChange(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white font-semibold"
+                    >
+                      {Object.keys(estructuraActual[categoriaSel] || {}).map((sub) => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">3. Subcategoría Específica</label>
+                    <select
+                      value={subcategoriaEspecialSel}
+                      onChange={(e) => setSubcategoriaEspecialSel(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
                     >
-                      {(estructuraActual[categoriaSel] || []).map((sub) => (
-                        <option key={sub} value={sub}>{sub}</option>
+                      {(estructuraActual[categoriaSel]?.[subcategoriaSel] || []).map((subEspecial) => (
+                        <option key={subEspecial} value={subEspecial}>{subEspecial}</option>
                       ))}
                     </select>
                   </div>
@@ -821,7 +1010,7 @@ export default function Dashboard() {
                     <input
                       type="text"
                       required
-                      placeholder="Ej. Cable #12 Uso Doméstico"
+                      placeholder="Ej. Manguera Galvanizada Azul 1/2"
                       value={nombreComercialProd}
                       onChange={(e) => setNombreComercialProd(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
@@ -885,30 +1074,49 @@ export default function Dashboard() {
                 </div>
               </form>
 
-              {/* BARRA DE FILTRADO DE LA TABLA Y CONTROL DE PAGINACIÓN */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-100 p-4 rounded-t-xl border border-gray-200 gap-3">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-extrabold text-blue-900 uppercase tracking-wider">Filtrar Tabla:</span>
-                    <select
-                      value={filtroSubcategoriaTabla}
-                      onChange={(e) => {
-                        setFiltroSubcategoriaTabla(e.target.value)
-                        setPaginaTabla(1)
-                      }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
-                    >
-                      <option value="TODAS">Ver Todas las Subcategorías</option>
-                      {subcategoriasDisponibles.map((sub) => (
-                        <option key={sub} value={sub}>{sub}</option>
-                      ))}
-                    </select>
-                  </div>
+              {/* BARRA DE FILTRADO COMPACTA EN UNA SOLA LÍNEA */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-100 p-3 rounded-t-xl border border-gray-200 gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-black text-blue-900 uppercase tracking-wider">Filtrar:</span>
+                  
+                  {/* COMBOBOX 1: SUBCATEGORÍA COMPACTO */}
+                  <select
+                    value={filtroSubcategoriaTabla}
+                    onChange={(e) => {
+                      const sub = e.target.value
+                      setFiltroSubcategoriaTabla(sub)
+                      setFiltroSubcategoriaEspecialTabla('TODAS')
+                      setPaginaTabla(1)
+                    }}
+                    className="max-w-[170px] sm:max-w-[200px] truncate px-2 py-1 bg-white border border-gray-300 rounded-md text-xs font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-orange-500 shadow-sm"
+                  >
+                    <option value="TODAS">Subcategoría (Todas)</option>
+                    {subcategoriasDisponibles.map((sub) => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </select>
+
+                  {/* COMBOBOX 2: ESPECÍFICA DEPENDIENTE Y COMPACTO */}
+                  <select
+                    value={filtroSubcategoriaEspecialTabla}
+                    disabled={filtroSubcategoriaTabla === 'TODAS'}
+                    onChange={(e) => {
+                      setFiltroSubcategoriaEspecialTabla(e.target.value)
+                      setPaginaTabla(1)
+                    }}
+                    className="max-w-[170px] sm:max-w-[200px] truncate px-2 py-1 bg-white border border-gray-300 rounded-md text-xs font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-orange-500 shadow-sm disabled:bg-gray-100 disabled:text-gray-400"
+                  >
+                    <option value="TODAS">
+                      {filtroSubcategoriaTabla === 'TODAS' ? 'Específica (Elige Subcat)' : 'Específica (Todas)'}
+                    </option>
+                    {subcategoriasEspecialesDisponibles.map((subEspecial) => (
+                      <option key={subEspecial} value={subEspecial}>{subEspecial}</option>
+                    ))}
+                  </select>
                 </div>
                 
-                {/* NAVEGACIÓN RÁPIDA DE PÁGINAS ARRIBA */}
-                <div className="flex flex-wrap items-center justify-between sm:justify-end w-full sm:w-auto gap-3">
-                  <span className="text-xs font-bold text-gray-500">
+                <div className="flex flex-wrap items-center justify-between sm:justify-end w-full sm:w-auto gap-2">
+                  <span className="text-[11px] font-bold text-gray-500">
                     Mostrando <strong className="text-orange-600">{productosMostrarTabla.length > 0 ? indiceInicialTabla + 1 : 0}</strong> - <strong className="text-orange-600">{Math.min(indiceFinalTabla, productosMostrarTabla.length)}</strong> de <strong className="text-blue-900">{productosMostrarTabla.length}</strong>
                   </span>
 
@@ -918,18 +1126,18 @@ export default function Dashboard() {
                         type="button"
                         onClick={() => cambiarPaginaTabla(paginaTabla - 1)}
                         disabled={paginaTabla === 1}
-                        className="px-2 py-1 rounded bg-white border border-gray-200 text-blue-900 font-bold disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors"
+                        className="px-2 py-0.5 rounded bg-white border border-gray-200 text-blue-900 font-bold disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors"
                       >
                         &laquo;
                       </button>
-                      <span className="font-bold text-blue-900 px-1">
+                      <span className="font-bold text-blue-900 px-1 text-[11px]">
                         {paginaTabla}/{totalPaginasTabla}
                       </span>
                       <button
                         type="button"
                         onClick={() => cambiarPaginaTabla(paginaTabla + 1)}
                         disabled={paginaTabla === totalPaginasTabla}
-                        className="px-2 py-1 rounded bg-white border border-gray-200 text-blue-900 font-bold disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors"
+                        className="px-2 py-0.5 rounded bg-white border border-gray-200 text-blue-900 font-bold disabled:opacity-40 hover:bg-orange-500 hover:text-white transition-colors"
                       >
                         &raquo;
                       </button>
@@ -938,14 +1146,14 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* TABLA DE PRODUCTOS (PAGINADA) */}
+              {/* TABLA DE PRODUCTOS */}
               <div className="overflow-x-auto border border-t-0 border-gray-200 shadow-sm">
                 <table className="w-full text-left text-sm text-gray-700">
                   <thead className="bg-blue-950 text-white text-xs uppercase">
                     <tr>
                       <th className="py-3 px-4 font-bold">Código / Foto</th>
                       <th className="py-3 px-4 font-bold">Nombre Comercial</th>
-                      <th className="py-3 px-4 font-bold">Categoría / Subcategoría</th>
+                      <th className="py-3 px-4 font-bold">Jerarquía</th>
                       <th className="py-3 px-4 font-bold text-center">Unidad</th>
                       <th className="py-3 px-4 font-bold text-center">Visibilidad</th>
                       <th className="py-3 px-4 font-bold text-right">Acciones</th>
@@ -955,7 +1163,7 @@ export default function Dashboard() {
                     {productosPaginadosTabla.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-gray-500 font-medium">
-                          No hay productos registrados en esta subcategoría.
+                          No hay productos registrados con estos filtros.
                         </td>
                       </tr>
                     ) : (
@@ -969,8 +1177,11 @@ export default function Dashboard() {
                           </td>
                           <td className="py-3 px-4 font-medium text-gray-800 max-w-xs truncate">{p.descripcion}</td>
                           <td className="py-3 px-4 text-xs font-semibold text-orange-600">
-                            <div>{p.categoria}</div>
-                            <div className="text-gray-400 font-normal">{p.subcategoria}</div>
+                            <div className="font-bold text-blue-900">{p.categoria}</div>
+                            <div>{p.subcategoria}</div>
+                            {p.subcategoria_especifica && (
+                              <div className="text-gray-400 font-normal italic">{p.subcategoria_especifica}</div>
+                            )}
                           </td>
                           <td className="py-3 px-4 text-center text-xs font-bold text-blue-900 capitalize">
                             {p.unidad_medida || 'pieza'}
@@ -1051,6 +1262,160 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* VISTA: IMÁGENES DEL CATÁLOGO (GALERÍA REAL) CON FILTROS DEPENDIENTES Y COMPACTOS */}
+          {activeTab === 'imagenes_catalogo' && (
+            <div>
+              <div className="border-b border-gray-200 pb-4 mb-6">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-blue-900">Imágenes del Catálogo</h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  Agrega fotos reales tomadas en tienda a cada producto. Se guardarán secuencialmente como <code className="bg-gray-100 px-1 py-0.5 rounded text-orange-600 font-mono">012E.1.jpg</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-orange-600 font-mono">012E.2.jpg</code>, etc.
+                </p>
+              </div>
+
+              {/* FILTROS POR COMBOBOX (3 NIVELES DEPENDIENTES) */}
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 mb-6 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">Sección Catálogo</label>
+                  <select
+                    value={galeriaSeccionSel}
+                    onChange={(e) => {
+                      const sec = e.target.value
+                      setGaleriaSeccionSel(sec)
+                      setGaleriaCategoriaSel('TODAS')
+                      setGaleriaSubcategoriaSel('TODAS')
+                      setGaleriaSubcategoriaEspecialSel('TODAS')
+                      cargarProductosGaleria(sec)
+                    }}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs font-bold text-gray-900 bg-white"
+                  >
+                    {CATEGORIAS_CATALOGO.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">1. Categoría</label>
+                  <select
+                    value={galeriaCategoriaSel}
+                    onChange={(e) => {
+                      setGaleriaCategoriaSel(e.target.value)
+                      setGaleriaSubcategoriaSel('TODAS')
+                      setGaleriaSubcategoriaEspecialSel('TODAS')
+                    }}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-900 bg-white"
+                  >
+                    <option value="TODAS">Todas las Categorías</option>
+                    {categoriasGaleriaDisponibles.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">2. Subcategoría</label>
+                  <select
+                    value={galeriaSubcategoriaSel}
+                    onChange={(e) => {
+                      setGaleriaSubcategoriaSel(e.target.value)
+                      setGaleriaSubcategoriaEspecialSel('TODAS')
+                    }}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-900 bg-white"
+                  >
+                    <option value="TODAS">Todas las Subcategorías</option>
+                    {subcategoriasGaleriaDisponibles.map((sub) => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">3. Específica</label>
+                  <select
+                    value={galeriaSubcategoriaEspecialSel}
+                    disabled={galeriaSubcategoriaSel === 'TODAS'}
+                    onChange={(e) => setGaleriaSubcategoriaEspecialSel(e.target.value)}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                  >
+                    <option value="TODAS">
+                      {galeriaSubcategoriaSel === 'TODAS' ? 'Elige Subcategoría' : 'Todas las Específicas'}
+                    </option>
+                    {subcategoriasEspecialesGaleriaDisponibles.map((subEspecial) => (
+                      <option key={subEspecial} value={subEspecial}>{subEspecial}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* TABLA DE FOTOS REALES */}
+              <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
+                <table className="w-full text-left text-sm text-gray-700">
+                  <thead className="bg-blue-950 text-white text-xs uppercase">
+                    <tr>
+                      <th className="py-3 px-4 font-bold">Foto Catálogo</th>
+                      <th className="py-3 px-4 font-bold">Código</th>
+                      <th className="py-3 px-4 font-bold">Nombre Comercial</th>
+                      <th className="py-3 px-4 font-bold">Imágenes Agregadas</th>
+                      <th className="py-3 px-4 font-bold text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {galeriaProductosFiltrados.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-gray-500 font-medium">
+                          No se encontraron productos para los filtros seleccionados.
+                        </td>
+                      </tr>
+                    ) : (
+                      galeriaProductosFiltrados.map((p) => {
+                        const fotosAgregadas = p.imagenes_galeria || []
+                        const subiendoEste = subiendoGaleriaId === p.id
+
+                        return (
+                          <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="py-3 px-4">
+                              <div className="w-12 h-12 bg-gray-50 border rounded-lg p-1 flex items-center justify-center overflow-hidden">
+                                <img src={p.imagen_url} alt={p.codigo} className="w-full h-full object-contain" />
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 font-black text-blue-900 font-mono">{p.codigo}</td>
+                            <td className="py-3 px-4 font-medium text-gray-800 max-w-xs">{p.descripcion}</td>
+                            <td className="py-3 px-4">
+                              {fotosAgregadas.length === 0 ? (
+                                <span className="text-xs text-gray-400 italic">Sin fotos adicionales</span>
+                              ) : (
+                                <div className="flex flex-wrap gap-1 max-w-xs">
+                                  {fotosAgregadas.map((_, idx) => (
+                                    <span key={idx} className="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded font-mono">
+                                      {p.codigo}.{idx + 1}.jpg
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <label className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors cursor-pointer shadow-sm ${subiendoEste ? 'bg-gray-400 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600'}`}>
+                                {subiendoEste ? 'Subiendo...' : '+ Agregar imágenes'}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  disabled={subiendoEste}
+                                  onChange={(e) => subirImagenesGaleria(p, e.target.files)}
+                                  className="hidden"
+                                />
+                              </label>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 

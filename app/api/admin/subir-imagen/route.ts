@@ -24,30 +24,45 @@ export async function POST(req: Request) {
     const octokit = new Octokit({ auth: token })
     const formData = await req.formData()
     const codigo = formData.get('codigo') as string
+    const nombrePersonalizado = formData.get('nombre_personalizado') as string | null
     const file = formData.get('imagen') as File
 
-    if (!codigo || !file) {
-      return NextResponse.json({ error: 'Código e imagen son requeridos' }, { status: 400 })
+    if ((!codigo && !nombrePersonalizado) || !file) {
+      return NextResponse.json({ error: 'Código (o nombre personalizado) e imagen son requeridos' }, { status: 400 })
     }
 
-    const codigoLimpio = codigo.trim().toUpperCase()
+    const codigoLimpio = codigo ? codigo.trim().toUpperCase() : ''
+    
+    // Determinar el nombre final del archivo (Ej. 012E.1.jpg o 012E.jpg)
+    const fileName = nombrePersonalizado 
+      ? nombrePersonalizado.trim()
+      : `${codigoLimpio}.jpg`
 
     // 1. Convertir la imagen cargada a Buffer
     const arrayBuffer = await file.arrayBuffer()
     const inputBuffer = Buffer.from(arrayBuffer)
 
-    // 2. Procesamiento con Sharp: redimensionar a 600x600 px, aplanar sobre fondo blanco puro y convertir a JPEG (85% calidad)
-    const processedBuffer = await sharp(inputBuffer)
-      .resize(600, 600, {
-        fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
-      })
-      .flatten({ background: '#FFFFFF' })
-      .jpeg({ quality: 85 })
-      .toBuffer()
+    let processedBuffer: Buffer
+
+    // 2. Procesamiento con Sharp
+    if (nombrePersonalizado) {
+      // Si es foto de galería real: solo optimizar calidad sin forzar lienzo cuadrado ni fondo blanco
+      processedBuffer = await sharp(inputBuffer)
+        .jpeg({ quality: 85 })
+        .toBuffer()
+    } else {
+      // Si es la foto principal del catálogo: redimensionar a 600x600 px sobre fondo blanco
+      processedBuffer = await sharp(inputBuffer)
+        .resize(600, 600, {
+          fit: 'contain',
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
+        })
+        .flatten({ background: '#FFFFFF' })
+        .jpeg({ quality: 85 })
+        .toBuffer()
+    }
 
     const contentBase64 = processedBuffer.toString('base64')
-    const fileName = `${codigoLimpio}.jpg`
     const repoOwner = 'albizteguielectric'
     const repoName = 'catalogo-img'
 
@@ -71,13 +86,13 @@ export async function POST(req: Request) {
       owner: repoOwner,
       repo: repoName,
       path: fileName,
-      message: `auto: actualización de imagen para producto ${codigoLimpio}`,
+      message: `auto: actualización de imagen ${fileName}`,
       content: contentBase64,
       branch: 'main',
       ...(sha ? { sha } : {}),
     })
 
-    // URL pública raw lista para guardarse en la BD y desplegarse en la tienda web
+    // URL pública raw lista para guardarse en la BD
     const rawImageUrl = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/${fileName}`
 
     return NextResponse.json({
