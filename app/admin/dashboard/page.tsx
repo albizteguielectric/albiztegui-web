@@ -572,6 +572,25 @@ export default function Dashboard() {
     }
   }
 
+  // ELIMINAR/VACIAR TODAS LAS FOTOS SECUNDARIAS DE LA GALERÍA DE UN PRODUCTO
+  const vaciarGaleriaProducto = async (productoId: number) => {
+    try {
+      const tabla = obtenerNombreTabla(galeriaSeccionSel)
+      const { error } = await supabase
+        .from(tabla)
+        .update({ imagenes_galeria: [] })
+        .eq('id', productoId)
+
+      if (error) throw error
+
+      mostrarAlerta('Se eliminaron todas las fotos de la galería adicional.', 'exito')
+      cargarProductosGaleria(galeriaSeccionSel)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al vaciar la galería del producto'
+      mostrarAlerta(msg, 'error')
+    }
+  }
+
   const prepararEdicion = (p: ProductoCatalogo) => {
     setEditandoId(p.id || null)
     setCategoriaSel(p.categoria)
@@ -669,6 +688,8 @@ export default function Dashboard() {
       const tabla = obtenerNombreTabla(activeTab)
       const { error } = await supabase.from(tabla).delete().eq('id', modal.id)
       if (!error) { cargarProductosSeccion(activeTab); mostrarAlerta('Producto eliminado.', 'exito') }
+    } else if (modal.tipo === 'vaciar_galeria') {
+      vaciarGaleriaProducto(modal.id)
     }
     setModal({ mostrar: false, id: 0, tipo: '' })
   }
@@ -750,7 +771,8 @@ export default function Dashboard() {
               Esta acción eliminará definitivamente {
                 modal.tipo === 'imagen' ? 'esta imagen del carrusel' : 
                 modal.tipo === 'mensaje' ? 'este mensaje' : 
-                modal.tipo === 'marca' ? 'esta marca comercial' : 'este producto del catálogo'
+                modal.tipo === 'marca' ? 'esta marca comercial' : 
+                modal.tipo === 'vaciar_galeria' ? 'todas las imágenes adicionales de este producto. Solo se conservará la foto principal' : 'este producto del catálogo'
               }. No podrás recuperar la información.
             </p>
             <div className="flex justify-end gap-4">
@@ -1265,7 +1287,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* VISTA: IMÁGENES DEL CATÁLOGO (GALERÍA REAL) CON FILTROS DEPENDIENTES Y COMPACTOS */}
+          {/* VISTA: IMÁGENES DEL CATÁLOGO (GALERÍA REAL) CON FILTROS DEPENDIENTES Y ELIMINACIÓN */}
           {activeTab === 'imagenes_catalogo' && (
             <div>
               <div className="border-b border-gray-200 pb-4 mb-6">
@@ -1359,7 +1381,7 @@ export default function Dashboard() {
                       <th className="py-3 px-4 font-bold">Código</th>
                       <th className="py-3 px-4 font-bold">Nombre Comercial</th>
                       <th className="py-3 px-4 font-bold">Imágenes Agregadas</th>
-                      <th className="py-3 px-4 font-bold text-right">Acción</th>
+                      <th className="py-3 px-4 font-bold text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
@@ -1396,7 +1418,20 @@ export default function Dashboard() {
                                 </div>
                               )}
                             </td>
-                            <td className="py-3 px-4 text-right">
+                            <td className="py-3 px-4 text-right space-x-2">
+                              {/* BOTÓN PARA VACIAR O BORRAR FOTOS SECUNDARIAS */}
+                              {fotosAgregadas.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setModal({ mostrar: true, id: p.id!, tipo: 'vaciar_galeria' })}
+                                  className="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors shadow-sm"
+                                  title="Eliminar todas las fotos de la galería de este producto"
+                                >
+                                  Vaciar fotos
+                                </button>
+                              )}
+
+                              {/* BOTÓN SUBIR NUEVAS FOTOS */}
                               <label className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors cursor-pointer shadow-sm ${subiendoEste ? 'bg-gray-400 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600'}`}>
                                 {subiendoEste ? 'Subiendo...' : '+ Agregar imágenes'}
                                 <input
