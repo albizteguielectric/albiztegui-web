@@ -750,7 +750,6 @@ export default function CajasRegistrosPage() {
             Solicitar Cotización de Cajas
           </Link>
         </div>
-
       </div>
     </div>
   )
