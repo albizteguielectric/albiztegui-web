@@ -74,19 +74,45 @@ const ESTRUCTURAS_POR_CATALOGO: Record<string, Record<string, Record<string, str
     }
   },
   cajas_registros: {
-    'CAJAS METALICAS': {
-      'Cajas Generales': ['Cajas 2x4', 'Cajas 4x4, 5x5, 6x6, 8x8', 'Cajas Octagonales']
-    },
-    'PLASTICAS Y CANALETAS': {
-      'Plasticas': ['Chalupas Plasticas', 'Cajas de Reparacion', 'Cajas Estanca', 'Canaletas']
-    },
-    'INTERPERIE Y TIPO ZAPATO': {
-      'Especiales': ['Chalupas de Interperie', 'Armarios', 'Cajas tipo Zapato']
-    },
-    'TAPAS Y COMPLEMENTOS': {
-      'Tapas': ['Tapas Ciegas Galvanizadas', 'Tapas Galvanizadas', 'Tapas Interperie', 'Tapas Especiales']
-    }
+  'CAJAS METALICAS': {
+    'Cajas Registro': [
+      '2X4 y 2X5',
+      '4X4, 5X5, 6X6, 8X8 y 2x6',
+      'Octagolanes'
+    ]
   },
+  'CAJAS PLASTICAS Y CANALESTAS': {
+    'Cajas Plasticas': [
+      'Chalupas de Plastico',
+      'Cajas de Reparacion',
+      'Cajas Estanca'
+    ],
+    'Canaletas': [
+      'Platicas',
+      'Perforadas'
+    ]
+  },
+  'CAJAS DE INTERPERIE': {
+    'Cajas de Registro': [
+      'Interperie'
+    ],
+    'Cajas Metalicas': [
+      'Armario',
+      'Tipo Zapato'
+    ]
+  },
+  'TAPAS Y COMPLEMENTOS': {
+    'Tapas Metalicas': [
+      'Tapas Ciegas Galvanizadas',
+      'Tapas Galvanizadas',
+      'Tapas Especiales'
+    ],
+    'Tapas de Interperie': [
+      '2X4',
+      '4X4'
+    ]
+  }
+},
   cableado: {
     'CABLE': {
       'Conductores': ['Cobre', 'Aluminio']
