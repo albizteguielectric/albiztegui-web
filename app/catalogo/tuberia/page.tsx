@@ -29,7 +29,7 @@ const ESTRUCTURA_TUBERIA: Record<string, Record<string, string[]>> = {
     'Clip y Unistrut': ['Clip', 'Unistrut']
   },
   'PERFILES UNICANAL Y EVEREST': {
-    'Perfiles Unicanal y Everest': ['Perfiles Unicanal y Everest', 'Coples, Soleras y Tipo Piso', 'Mid Clamps, End Clamps e Intermedias']
+    'Perfiles Unicanal y Everest': ['Perfiles Unicanal y Everest', 'Coples, Soleras y Tipo Piso', 'Mid Clamps, End Clamps e Intermedias', 'Accesorios']
   }
 }
 
