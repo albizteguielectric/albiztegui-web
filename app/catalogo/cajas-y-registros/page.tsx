@@ -736,6 +736,7 @@ export default function CajasRegistrosPage() {
             </>
           )}
         </div>
+        
         {/* LLAMADO A COTIZAR */}
         <div className="bg-gradient-to-r from-blue-950 to-blue-900 rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center text-white border-b-6 sm:border-b-8 border-orange-500">
           <h2 className="text-xl sm:text-3xl font-extrabold mb-2 sm:mb-3">¿Requieres cajas especiales o volumen para obra?</h2>
