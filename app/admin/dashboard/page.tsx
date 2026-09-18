@@ -74,45 +74,45 @@ const ESTRUCTURAS_POR_CATALOGO: Record<string, Record<string, Record<string, str
     }
   },
   cajas_registros: {
-  'CAJAS METALICAS': {
-    'Cajas Registro': [
-      '2X4 y 2X5',
-      '4X4, 5X5, 6X6, 8X8 y 2x6',
-      'Octagolanes'
-    ]
+    'CAJAS METALICAS': {
+      'Cajas Registro': [
+        '2X4 y 2X5',
+        '4X4, 5X5, 6X6, 8X8 y 2x6',
+        'Octagolanes'
+      ]
+    },
+    'CAJAS PLASTICAS Y CANALESTAS': {
+      'Cajas Plasticas': [
+        'Chalupas de Plastico',
+        'Cajas de Reparacion',
+        'Cajas Estanca'
+      ],
+      'Canaletas': [
+        'Platicas',
+        'Perforadas'
+      ]
+    },
+    'CAJAS DE INTERPERIE': {
+      'Cajas de Registro': [
+        'Interperie'
+      ],
+      'Cajas Metalicas': [
+        'Armario',
+        'Tipo Zapato'
+      ]
+    },
+    'TAPAS Y COMPLEMENTOS': {
+      'Tapas Metalicas': [
+        'Tapas Ciegas Galvanizadas',
+        'Tapas Galvanizadas',
+        'Tapas Especiales'
+      ],
+      'Tapas de Interperie': [
+        '2X4',
+        '4X4'
+      ]
+    }
   },
-  'CAJAS PLASTICAS Y CANALESTAS': {
-    'Cajas Plasticas': [
-      'Chalupas de Plastico',
-      'Cajas de Reparacion',
-      'Cajas Estanca'
-    ],
-    'Canaletas': [
-      'Platicas',
-      'Perforadas'
-    ]
-  },
-  'CAJAS DE INTERPERIE': {
-    'Cajas de Registro': [
-      'Interperie'
-    ],
-    'Cajas Metalicas': [
-      'Armario',
-      'Tipo Zapato'
-    ]
-  },
-  'TAPAS Y COMPLEMENTOS': {
-    'Tapas Metalicas': [
-      'Tapas Ciegas Galvanizadas',
-      'Tapas Galvanizadas',
-      'Tapas Especiales'
-    ],
-    'Tapas de Interperie': [
-      '2X4',
-      '4X4'
-    ]
-  }
-},
   cableado: {
     'CABLE': {
       'Conductores': ['Cobre', 'Aluminio']
@@ -225,6 +225,51 @@ const CATEGORIAS_CATALOGO = [
   { id: 'electronica', nombre: 'Electronica y Herramientas', tabla: 'productos_electronica' },
   { id: 'productos_temporada', nombre: 'Productos de Temporada', tabla: 'productos_temporada' }
 ]
+
+// FUNCIÓN DE COMPRESIÓN DE IMÁGENES EN EL NAVEGADOR
+const comprimirImagen = (archivo: File, maxAncho = 1200, calidad = 0.8): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(archivo)
+    reader.onload = (event) => {
+      const img = document.createElement('img')
+      img.src = event.target?.result as string
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let ancho = img.width
+        let alto = img.height
+
+        if (ancho > maxAncho) {
+          alto = Math.round((alto * maxAncho) / ancho)
+          ancho = maxAncho
+        }
+
+        canvas.width = ancho
+        canvas.height = alto
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(img, 0, 0, ancho, alto)
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const archivoComprimido = new File([blob], archivo.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              })
+              resolve(archivoComprimido)
+            } else {
+              reject(new Error('Error al comprimir la imagen'))
+            }
+          },
+          'image/jpeg',
+          calidad
+        )
+      }
+      img.onerror = (err) => reject(err)
+    }
+    reader.onerror = (err) => reject(err)
+  })
+}
 
 export default function Dashboard() {
   const router = useRouter()
@@ -483,9 +528,12 @@ export default function Dashboard() {
       let imagenUrl = `https://raw.githubusercontent.com/albizteguielectric/catalogo-img/main/${codigoProd.toUpperCase()}.jpg`
 
       if (archivoImagenProd) {
+        // Compresión de la imagen principal antes de subir
+        const imagenComprimida = await comprimirImagen(archivoImagenProd, 1200, 0.8)
+
         const dataImg = new FormData()
         dataImg.append('codigo', codigoProd)
-        dataImg.append('imagen', archivoImagenProd)
+        dataImg.append('imagen', imagenComprimida)
 
         const resImg = await fetch('/api/admin/subir-imagen', {
           method: 'POST',
@@ -546,6 +594,7 @@ export default function Dashboard() {
     }
   }
 
+  // SUBIDA DE MÚLTIPLES IMÁGENES OPTIMIZADA Y COMPRIMIDA EN CLIENTE
   const subirImagenesGaleria = async (producto: ProductoCatalogo, archivos: FileList | null) => {
     if (!archivos || archivos.length === 0) return
 
@@ -556,14 +605,18 @@ export default function Dashboard() {
       const nuevasUrls: string[] = []
 
       for (let i = 0; i < archivos.length; i++) {
-        const file = archivos[i]
+        const fileOriginal = archivos[i]
+        
+        // 1. Comprimir archivo antes de generar el paquete HTTP
+        const fileComprimido = await comprimirImagen(fileOriginal, 1200, 0.8)
+
         const indice = fotosExistentes.length + i + 1
         const nombreArchivoSecuencial = `${codigoUpper}.${indice}.jpg`
 
         const dataImg = new FormData()
         dataImg.append('codigo', codigoUpper)
         dataImg.append('nombre_personalizado', nombreArchivoSecuencial)
-        dataImg.append('imagen', file)
+        dataImg.append('imagen', fileComprimido)
 
         const resImg = await fetch('/api/admin/subir-imagen', {
           method: 'POST',
@@ -571,7 +624,8 @@ export default function Dashboard() {
         })
 
         if (!resImg.ok) {
-          throw new Error(`Error al subir la imagen ${i + 1}`)
+          const textError = await resImg.text()
+          throw new Error(`Error en el servidor al subir la imagen ${i + 1}: ${textError.substring(0, 60)}`)
         }
 
         const resultImg = await resImg.json()
