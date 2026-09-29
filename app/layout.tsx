@@ -6,7 +6,7 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Albiztegui Electric | Suministros Eléctricos y Media Tensión',
+    default: 'Albiztegui Electric',
     template: '%s | Albiztegui Electric',
   },
   description:
@@ -56,9 +56,13 @@ export const metadata: Metadata = {
   },
 
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
+    icon: [
+      { url: '/icon/favicon.ico' },
+      { url: '/icon/WEB-Albiztegui.png', type: 'image/png' }
+    ],
+    apple: [
+      { url: '/icon/WEB-Albiztegui.png' }
+    ]
   },
 }
 
