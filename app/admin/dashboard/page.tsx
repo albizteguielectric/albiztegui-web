@@ -421,6 +421,17 @@ export default function Dashboard() {
       if (!session) {
         router.push('/admin')
       } else {
+        const { data: perfil, error } = await supabase
+          .from('usuarios')
+          .select('puesto, activo')
+          .eq('id', session.user.id)
+          .single()
+        const puesto = perfil?.puesto?.trim().toLowerCase()
+        if (error || perfil?.activo !== true || !['it', 'admin', 'administrador'].includes(puesto || '')) {
+          await supabase.auth.signOut()
+          router.push('/admin')
+          return
+        }
         setLoading(false)
         cargarImagenes()
         cargarMensajes()
@@ -535,8 +546,10 @@ export default function Dashboard() {
         dataImg.append('codigo', codigoProd)
         dataImg.append('imagen', imagenComprimida)
 
+        const { data: { session: sesionImagen } } = await supabase.auth.getSession()
         const resImg = await fetch('/api/admin/subir-imagen', {
           method: 'POST',
+          headers: { Authorization: `Bearer ${sesionImagen?.access_token || ''}` },
           body: dataImg,
         })
 
@@ -618,8 +631,10 @@ export default function Dashboard() {
         dataImg.append('nombre_personalizado', nombreArchivoSecuencial)
         dataImg.append('imagen', fileComprimido)
 
+        const { data: { session: sesionImagen } } = await supabase.auth.getSession()
         const resImg = await fetch('/api/admin/subir-imagen', {
           method: 'POST',
+          headers: { Authorization: `Bearer ${sesionImagen?.access_token || ''}` },
           body: dataImg,
         })
 

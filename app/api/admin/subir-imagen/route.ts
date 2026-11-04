@@ -1,6 +1,25 @@
 import { NextResponse } from 'next/server'
 import { Octokit } from '@octokit/rest'
 import sharp from 'sharp'
+import { createClient } from '@supabase/supabase-js'
+
+async function validarAdmin(req: Request) {
+  const token = req.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1]
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!token || !url || !anonKey) return false
+
+  const auth = createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  })
+  const { data: { user }, error } = await auth.auth.getUser(token)
+  if (error || !user) return false
+
+  const { data: perfil } = await auth.from('usuarios').select('puesto, activo').eq('id', user.id).maybeSingle()
+  const puesto = perfil?.puesto?.toLowerCase().trim()
+  return perfil?.activo === true && ['it', 'admin', 'administrador'].includes(puesto || '')
+}
 
 // Método GET para verificación manual en navegador (evita error HTTP 405)
 export async function GET() {
@@ -13,6 +32,10 @@ export async function GET() {
 // Método POST para procesar imagen con Sharp y subirla a GitHub (catalogo-img)
 export async function POST(req: Request) {
   try {
+    if (!await validarAdmin(req)) {
+      return NextResponse.json({ error: 'Se requieren permisos de IT o administrador.' }, { status: 403 })
+    }
+
     const token = process.env.GITHUB_TOKEN_ADMIN
     if (!token) {
       return NextResponse.json(
@@ -31,12 +54,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Código (o nombre personalizado) e imagen son requeridos' }, { status: 400 })
     }
 
+    if (file.size > 8 * 1024 * 1024 || !file.type.startsWith('image/')) {
+      return NextResponse.json({ error: 'La imagen debe ser válida y pesar máximo 8 MB.' }, { status: 400 })
+    }
+
     const codigoLimpio = codigo ? codigo.trim().toUpperCase() : ''
     
     // Determinar el nombre final del archivo (Ej. 012E.1.jpg o 012E.jpg)
     const fileName = nombrePersonalizado 
       ? nombrePersonalizado.trim()
       : `${codigoLimpio}.jpg`
+
+    if (!/^[a-zA-Z0-9._-]+\.jpg$/i.test(fileName)) {
+      return NextResponse.json({ error: 'Nombre de archivo inválido.' }, { status: 400 })
+    }
 
     // 1. Convertir la imagen cargada a Buffer
     const arrayBuffer = await file.arrayBuffer()

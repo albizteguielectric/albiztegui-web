@@ -42,8 +42,8 @@ export default function AdminLoginPage() {
       // 2. Validar rol/puesto en la tabla "usuarios"
       const { data: usuario, error: userError } = await supabase
         .from('usuarios')
-        .select('correo, puesto')
-        .eq('correo', userEmail.trim())
+        .select('correo, puesto, activo')
+        .eq('id', authData.user!.id)
         .single()
 
       if (userError || !usuario) {
@@ -55,7 +55,7 @@ export default function AdminLoginPage() {
       const puestoLimpio = usuario.puesto ? usuario.puesto.trim().toUpperCase() : ''
       const esAutorizado = puestoLimpio === 'ADMINISTRADOR' || puestoLimpio === 'IT' || puestoLimpio === 'ADMIN'
 
-      if (!esAutorizado) {
+      if (!esAutorizado || usuario.activo !== true) {
         // Cerrar sesión si no tiene los permisos requeridos
         await supabase.auth.signOut()
         throw new Error('Acceso denegado. Se requieren permisos de Administrador o IT.')
