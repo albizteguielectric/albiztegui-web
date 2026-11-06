@@ -1,21 +1,21 @@
 export default function Sucursales() {
   const tiendas = [
     {
-      nombre: "Sucursal Macro Plaza",
+      nombre: "Sucursal Macro Plaza (tienda)",
       direccion: "C. Galena #102 Col. Centro, Nuevo Casas Grandes, Chih.",
       horario: "Lunes a Viernes: 8:00 AM - 6:30 PM | Sábados: 8:00 AM - 5:00 PM",
       telefono: "(636) 694-1818 | (636) 694-1828",
       mapa: "https://maps.app.goo.gl/wVdZXNAGxYe5brrg9" // Aquí pegarás el enlace que te da Google Maps al darle en "Compartir"
     },
     {
-      nombre: "Sucursal Tec",
+      nombre: "Sucursal Tec (tienda)",
       direccion: "Av. Tecnólogico #3908 Col. Acción Popular, Nuevo Casas Grandes, Chih.",
       horario: "Lunes a Viernes: 8:00 AM - 6:30 PM | Sábados: 8:00 AM - 5:00 PM",
       telefono: "636-699-8367 | 636-117-0380",
       mapa: "https://maps.app.goo.gl/FNGTsReJwiZ3z1fR9" 
     },
      {
-      nombre: "Matriz",
+      nombre: "Matriz (oficinas)",
       direccion: "Av Benito Juarez #722-A Col. Centro, Nuevo Casas Grandes, Chih.",
       horario: "Lunes a Viernes: 8:00 AM - 6:00 PM | Sábados: 8:00 AM - 1:00 PM",
       telefono: "(636) 694-1870",

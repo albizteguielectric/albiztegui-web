@@ -64,10 +64,10 @@ export default function Contacto() {
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-orange-500 font-semibold mb-1 text-xs sm:text-sm">Horario</h3>
+                  <h3 className="text-orange-500 font-semibold mb-1 text-xs sm:text-sm">Horario (en tienda)</h3>
                   <p className="text-gray-300 text-xs sm:text-sm">
-                    Lunes a Viernes: 8:00 AM - 7:00 PM<br/>
-                    Sábados: 8:00 AM - 2:00 PM
+                    Lunes a Viernes: 8:00 AM - 6:30 PM<br/>
+                    Sábados: 8:00 AM - 5:00 PM
                   </p>
                 </div>
                 <div>
