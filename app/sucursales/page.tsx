@@ -34,7 +34,7 @@ export default function Sucursales() {
         <div className="text-center mb-12 bg-white/90 max-w-2xl mx-auto p-6 rounded-2xl shadow-sm border border-gray-100">
           <h1 className="text-4xl font-extrabold text-blue-900 mb-4">Nuestras Sucursales</h1>
           <p className="text-lg text-blue-900/80 font-medium">
-            Visítanos en nuestras dos ubicaciones o solicita cotización para envíos por mayoreo.
+            Visita nuestras dos tiendas en Nuevo Casas Grandes o comunícate con nuestra matriz administrativa. También atendemos solicitudes de cotización por mayoreo.
           </p>
         </div>
         
